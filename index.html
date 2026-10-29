@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoSales Executive Dashboard</title>
+    <title>JAGO SUBUR HQ</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -13,39 +13,46 @@
         body { background-color: #F3F4F6; height: 100vh; overflow: hidden; }
 
         /* Layar Login */
-        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1E3A8A, #3B82F6); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #064E3B, #10B981); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 400px; text-align: center; }
-        .login-card h2 { color: #111827; font-weight: 800; font-size: 28px; margin-bottom: 5px; }
+        .login-card img { width: 90px; margin-bottom: 10px; }
+        .login-card h2 { color: #10B981; font-weight: 900; font-size: 28px; margin-bottom: 5px; }
         .login-card p { color: #6B7280; margin-bottom: 30px; font-size: 14px; }
         .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group input { width: 100%; padding: 12px 15px; border: 1px solid #D1D5DB; border-radius: 10px; font-size: 15px; outline: none; transition: border-color 0.3s; }
-        .input-group input:focus { border-color: #3B82F6; }
-        .btn-login { width: 100%; background: #2563EB; color: white; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
-        .btn-login:hover { background: #1D4ED8; }
+        .input-group input { width: 100%; padding: 12px 15px; border: 1px solid #D1D5DB; border-radius: 10px; font-size: 15px; outline: none; }
+        .input-group input:focus { border-color: #10B981; }
+        .btn-login { width: 100%; background: #10B981; color: white; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+        .btn-login:hover { background: #059669; }
         #login-error { color: #EF4444; font-size: 13px; margin-top: 10px; display: none; }
 
         /* Dashboard Utama */
         #dashboard-screen { display: none; width: 100%; height: 100%; display: flex; flex-direction: column; }
-        header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); z-index: 10; }
+        header { background: white; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); z-index: 10; }
         .brand { display: flex; align-items: center; gap: 15px; }
-        .brand h1 { font-size: 22px; font-weight: 800; color: #111827; }
-        .status-badge { background: #10B981; color: white; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); }
+        .brand img { height: 50px; }
+        .brand h1 { font-size: 24px; font-weight: 900; color: #10B981; }
+        .status-badge { background: #10B981; color: white; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); margin-left: 10px; }
         .admin-profile { font-size: 14px; color: #4B5563; font-weight: 600; display: flex; gap: 15px; align-items: center;}
         .btn-logout { background: #FEE2E2; color: #EF4444; padding: 5px 15px; border-radius: 8px; text-decoration: none; font-size: 12px; cursor: pointer; border: none; font-weight: 600;}
         
         #map-container { flex: 1; position: relative; }
         #map { width: 100%; height: 100%; z-index: 1; }
+        
+        /* Hapus padding default Leaflet agar ID Card penuh */
+        .leaflet-popup-content-wrapper { padding: 0 !important; overflow: hidden; border-radius: 12px; }
+        .leaflet-popup-content { margin: 0 !important; }
     </style>
 </head>
 <body>
 
-    <!-- Layar Login Admin -->
+    <!-- Layar Login -->
     <div id="login-screen">
         <div class="login-card">
-            <h2>HQ Control</h2>
-            <p>Akses khusus pemantauan lapangan</p>
+            <img src="https://raw.githubusercontent.com/fauzanbunz/jagosubur/main/jagosuburlogo.png" alt="Logo">
+            <h2>JAGO SUBUR</h2>
+            <p>HQ Control Dashboard</p>
             <div class="input-group">
-                <input type="text" id="admin-user" placeholder="Username">
+                <input type="text" id="admin-user" placeholder="Username Admin">
             </div>
             <div class="input-group">
                 <input type="password" id="admin-pass" placeholder="Password">
@@ -55,12 +62,13 @@
         </div>
     </div>
 
-    <!-- Antarmuka Dashboard Utama -->
-    <div id="dashboard-screen" style="display: none;">
+    <!-- Dashboard Utama -->
+    <div id="dashboard-screen">
         <header>
             <div class="brand">
-                <h1>GeoSales Tracker</h1>
-                <div class="status-badge" id="status-text">LIVE SYNC</div>
+                <img src="https://raw.githubusercontent.com/fauzanbunz/jagosubur/main/jagosuburlogo.png" alt="Logo">
+                <h1>JAGO SUBUR</h1>
+                <div class="status-badge">LIVE SYNC</div>
             </div>
             <div class="admin-profile">
                 <span>Halo, <span id="admin-name">Bos</span></span>
@@ -83,7 +91,6 @@
 
         let map, routeLine, layerToko, sinkronisasiBerkala;
 
-        // Fungsi Autentikasi Admin
         async function prosesLogin() {
             const user = document.getElementById('admin-user').value;
             const pass = document.getElementById('admin-pass').value;
@@ -93,11 +100,7 @@
             btn.innerText = "Memverifikasi...";
 
             const { data, error } = await db.from('sales_team')
-                .select('*')
-                .eq('username', user)
-                .eq('password', pass)
-                .eq('role', 'admin')
-                .single();
+                .select('*').eq('username', user).eq('password', pass).eq('role', 'admin').single();
 
             if (error || !data) {
                 document.getElementById('login-error').style.display = 'block';
@@ -110,12 +113,11 @@
             }
         }
 
-        // Fungsi Membangun Peta (Hanya dipanggil SETELAH login berhasil)
         function inisialisasiPeta() {
             map = L.map('map').setView([-7.3692565, 112.6768411], 15);
             L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution: '© Google Maps' }).addTo(map);
 
-            routeLine = L.polyline([], {color: '#2563EB', weight: 5, opacity: 0.8}).addTo(map);
+            routeLine = L.polyline([], {color: '#10B981', weight: 6, opacity: 0.8}).addTo(map);
             layerToko = L.layerGroup().addTo(map);
 
             refreshPeta();
@@ -129,22 +131,35 @@
         });
 
         async function refreshPeta() {
-            // Tarik Rute (GPS)
             const resRute = await db.from('location_breadcrumbs').select('*').order('recorded_at', { ascending: true });
             if (resRute.data && resRute.data.length > 0) {
                 const latlngs = resRute.data.map(t => [t.latitude, t.longitude]);
                 routeLine.setLatLngs(latlngs);
-                map.panTo(latlngs[latlngs.length - 1]); // Auto-follow pin terakhir
+                map.panTo(latlngs[latlngs.length - 1]);
             }
 
-            // Tarik Check-In Toko
             const resToko = await db.from('laporan_kunjungan').select('*');
             if (resToko.data) {
                 layerToko.clearLayers();
                 resToko.data.forEach(toko => {
                     if (toko.latitude_checkin && toko.longitude_checkin) {
+                        // Desain Pop-Up ID Card Profil Sales
+                        const idCardHTML = `
+                            <div style="font-family: 'Poppins', sans-serif; width: 250px; text-align: center;">
+                                <div style="background: #10B981; color: white; padding: 12px; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    👤 ${toko.nama_sales}
+                                </div>
+                                <div style="background: #F9FAFB; padding: 15px; border-bottom: 3px solid #10B981;">
+                                    <span style="font-size: 11px; color: #6B7280; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Kunjungan Toko</span><br>
+                                    <b style="font-size: 16px; color: #111827; display: block; margin: 8px 0;">🏪 ${toko.nama_toko_klien}</b>
+                                    <hr style="margin: 10px 0; border: 0; border-top: 1px dashed #D1D5DB;">
+                                    <i style="font-size: 13px; color: #4B5563; line-height: 1.4; display: block;">"${toko.catatan_pertemuan}"</i>
+                                </div>
+                            </div>
+                        `;
+
                         L.marker([toko.latitude_checkin, toko.longitude_checkin], {icon: ikonToko})
-                         .bindPopup(`<div style="font-family:Poppins;"><b>🏪 ${toko.nama_toko_klien}</b><br><span style="font-size:11px; color:gray;">Sales: ${toko.nama_sales}</span><hr style="margin:8px 0; border:0; border-top:1px solid #eee;"><i style="font-size:12px;">"${toko.catatan_pertemuan}"</i></div>`)
+                         .bindPopup(idCardHTML)
                          .addTo(layerToko);
                     }
                 });
