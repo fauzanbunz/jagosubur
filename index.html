@@ -47,11 +47,28 @@
         .content-area { flex: 1; padding: 15px; overflow-y: auto; }
         .content-title { font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;}
         
-        .data-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #10B981; cursor: pointer; transition: 0.3s; }
+        .data-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #10B981; cursor: pointer; transition: 0.3s; position: relative; }
         .data-card:hover { transform: translateX(5px); box-shadow: 0 6px 12px rgba(16,185,129,0.15); }
-        .data-title { font-weight: 800; color: #111827; font-size: 15px; }
+        .data-title { font-weight: 800; color: #111827; font-size: 15px; display: flex; align-items: center; gap: 8px;}
         .data-subtitle { font-size: 12px; color: #6B7280; margin-top: 3px; font-weight: 600; }
         .data-desc { font-size: 12px; color: #4B5563; margin-top: 8px; font-style: italic; background: #F3F4F6; padding: 8px; border-radius: 8px; }
+
+        .btn-edit-profil { background: #E5E7EB; border: none; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        .btn-edit-profil:hover { background: #10B981; color: white; }
+
+        /* --- MODAL EDIT PROFIL LOKAL --- */
+        #modal-profil { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 99999; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 30px; border-radius: 20px; width: 350px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
+        .modal-box h3 { color: #064E3B; font-weight: 900; margin-bottom: 20px; }
+        .modal-btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn-group button { flex: 1; padding: 12px; border-radius: 10px; font-weight: 800; cursor: pointer; border: none; }
+        .btn-save { background: #10B981; color: white; }
+        .btn-cancel { background: #F3F4F6; color: #4B5563; }
+
+        /* --- TABS STATISTIK --- */
+        .stat-tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #E5E7EB; padding: 5px; border-radius: 12px; }
+        .stat-tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 800; color: #6B7280; cursor: pointer; border-radius: 8px; transition: 0.3s; }
+        .stat-tab.active { background: white; color: #10B981; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
         .map-wrapper { flex: 1; border-radius: 25px; overflow: hidden; border: 5px solid rgba(255, 255, 255, 0.6); box-shadow: 0 15px 35px rgba(0,0,0,0.3); position: relative; background: white; }
         #map { width: 100%; height: 100%; z-index: 1; }
@@ -63,20 +80,9 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 10px; }
 
-        /* --- KUSTOMISASI POPUP PROFIL SALES DI KANAN --- */
-        .profile-popup-custom .leaflet-popup-content-wrapper { 
-            padding: 0 !important; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            border: 3px solid #10B981; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important; 
-        }
+        .profile-popup-custom .leaflet-popup-content-wrapper { padding: 0 !important; border-radius: 20px; overflow: hidden; border: 3px solid #10B981; box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important; }
         .profile-popup-custom .leaflet-popup-content { margin: 0 !important; width: 330px !important; }
-        
-        /* Menghilangkan ekor/segitiga popup agar terlihat seperti melayang */
         .profile-popup-custom .leaflet-popup-tip-container { display: none !important; }
-        
-        /* Custom scrollbar untuk histori dalam popup */
         .history-scroll::-webkit-scrollbar { width: 4px; }
         .history-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
         
@@ -85,6 +91,25 @@
     </style>
 </head>
 <body>
+
+    <!-- MODAL PENGATURAN PROFIL LOKAL -->
+    <div id="modal-profil">
+        <div class="modal-box">
+            <h3>Pengaturan Profil Sales</h3>
+            <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Perubahan ini hanya tampil di Dasbor Web ini.</p>
+            <input type="hidden" id="edit-nama-asli">
+            <div class="input-group">
+                <input type="text" id="edit-nama-tampilan" placeholder="Nama Tampilan Bebas">
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+                <input type="text" id="edit-url-foto" placeholder="Link URL Foto (Opsional)">
+            </div>
+            <div class="modal-btn-group">
+                <button class="btn-cancel" onclick="tutupModalProfil()">Batal</button>
+                <button class="btn-save" onclick="simpanProfilLokal()">Simpan</button>
+            </div>
+        </div>
+    </div>
 
     <div id="login-screen">
         <div class="login-card">
@@ -111,15 +136,9 @@
             </div>
             
             <div class="menu-container">
-                <button class="btn-menu active" id="menu-track" onclick="ubahMenu('track')">
-                    <span style="font-size: 20px;">📍</span> Sales Track
-                </button>
-                <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')">
-                    <span style="font-size: 20px;">📝</span> Report Kunjungan
-                </button>
-                <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')" style="grid-column: span 2;">
-                    <span style="font-size: 20px;">📊</span> Overview & Statistik
-                </button>
+                <button class="btn-menu active" id="menu-track" onclick="ubahMenu('track')"><span style="font-size: 20px;">📍</span> Sales Track</button>
+                <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')"><span style="font-size: 20px;">📝</span> Report Kunjungan</button>
+                <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')" style="grid-column: span 2;"><span style="font-size: 20px;">📊</span> Overview & Statistik</button>
                 <button class="btn-logout-small" onclick="location.reload()">Keluar (Logout)</button>
             </div>
 
@@ -138,7 +157,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // API KEY SUPABASE SUDAH DISISIPKAN OTOMATIS
+        // API KEY SUPABASE (KUNCI YANG BENAR DARI TUAN)
         const supabaseUrl = 'https://cuwtrhdgwyxyuipthdbg.supabase.co';
         const supabaseKey = 'sb_publishable_syDLCuoKh9NKTRsfTRmpyQ_a3r5_GQG'; 
         const db = supabase.createClient(supabaseUrl, supabaseKey);
@@ -147,6 +166,49 @@
         let dataSalesTerakhir = {}; 
         let dataLaporan = []; 
         let menuAktif = 'track';
+        let rentangStatistik = 'harian'; // Mode statistik: harian, mingguan, bulanan
+
+        // Mengambil profil yang tersimpan di browser web
+        let profilLokal = JSON.parse(localStorage.getItem('jago_subur_profil')) || {};
+
+        function getProfilSales(namaAsli) {
+            if (profilLokal[namaAsli]) {
+                return {
+                    nama: profilLokal[namaAsli].namaTampilan || namaAsli,
+                    foto: profilLokal[namaAsli].fotoUrl || `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true`
+                };
+            }
+            return {
+                nama: namaAsli,
+                foto: `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true`
+            };
+        }
+
+        // FUNGSI MODAL PENGATURAN PROFIL
+        function bukaModalProfil(namaAsli, e) {
+            e.stopPropagation(); // Mencegah klik men-trigger efek zoom peta
+            document.getElementById('edit-nama-asli').value = namaAsli;
+            document.getElementById('edit-nama-tampilan').value = profilLokal[namaAsli] ? profilLokal[namaAsli].namaTampilan : namaAsli;
+            document.getElementById('edit-url-foto').value = profilLokal[namaAsli] ? profilLokal[namaAsli].fotoUrl : '';
+            document.getElementById('modal-profil').style.display = 'flex';
+        }
+
+        function tutupModalProfil() {
+            document.getElementById('modal-profil').style.display = 'none';
+        }
+
+        function simpanProfilLokal() {
+            const namaAsli = document.getElementById('edit-nama-asli').value;
+            const namaTampilan = document.getElementById('edit-nama-tampilan').value;
+            const fotoUrl = document.getElementById('edit-url-foto').value;
+            
+            profilLokal[namaAsli] = { namaTampilan: namaTampilan, fotoUrl: fotoUrl };
+            localStorage.setItem('jago_subur_profil', JSON.stringify(profilLokal)); // Simpan ke browser
+            
+            tutupModalProfil();
+            renderPanelKiri();
+            tarikDataSupabase(); // Refresh peta dan popup
+        }
 
         async function prosesLogin() {
             const user = document.getElementById('admin-user').value;
@@ -195,7 +257,7 @@
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
 
-        function terbangKeLokasi(lat, lng, nama) {
+        function terbangKeLokasi(lat, lng) {
             map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 });
         }
 
@@ -206,16 +268,22 @@
             renderPanelKiri();
         }
 
+        function ubahRentangStatistik(rentang) {
+            rentangStatistik = rentang;
+            renderPanelKiri();
+        }
+
         async function tarikDataSupabase() {
-            // 1. Tarik Data Laporan Kunjungan Terlebih Dahulu (Agar histori siap dipakai di profil)
+            // 1. Tarik Data Laporan Kunjungan
             const resToko = await db.from('laporan_kunjungan').select('*').order('created_at', { ascending: false });
             if (resToko.data) {
                 dataLaporan = resToko.data;
                 layerToko.clearLayers();
                 dataLaporan.forEach(toko => {
                     if (toko.latitude_checkin && toko.longitude_checkin) {
+                        const profil = getProfilSales(toko.nama_sales);
                         const idCardHTML = `<div style="font-family: 'Poppins'; width: 220px; text-align: center; border: 2px solid #3B82F6;">
-                            <div style="background: #3B82F6; color: white; padding: 10px; font-weight: 800; font-size: 15px;">👤 ${toko.nama_sales}</div>
+                            <div style="background: #3B82F6; color: white; padding: 10px; font-weight: 800; font-size: 15px;">👤 ${profil.nama}</div>
                             <div style="padding: 15px; background: white;">
                                 <span style="font-size: 10px; color: gray; font-weight:bold;">VISIT TOKO</span><br>
                                 <b style="font-size: 15px; color: #111827;">🏪 ${toko.nama_toko_klien}</b>
@@ -242,7 +310,8 @@
                 });
 
                 Object.values(dataSalesTerakhir).forEach(sales => {
-                    // Filter Histori Khusus Untuk Sales Ini
+                    const profil = getProfilSales(sales.nama_sales);
+                    
                     let historyHTML = '';
                     let laporanSalesIni = dataLaporan.filter(l => l.nama_sales === sales.nama_sales);
                     
@@ -260,32 +329,25 @@
                         historyHTML = `<div style="font-size: 12px; color: #9CA3AF; text-align: center; padding: 20px; font-style: italic;">Belum ada kunjungan toko hari ini.</div>`;
                     }
 
-                    // Struktur Kartu Profil Besar
                     const profilePopupHTML = `
                         <div style="width: 330px; font-family: 'Poppins', sans-serif;">
-                            <!-- Header Foto Besar & Tema Sawah -->
                             <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: url('https://raw.githubusercontent.com/fauzanbunz/jagosubur/main/Lanskap%20Sawah%20Jago%20Subur%20saat%20Fajar.png') center/cover; position: relative;">
                                 <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(6, 78, 59, 0.85);"></div>
-                                <img src="https://ui-avatars.com/api/?name=${sales.nama_sales}&background=10B981&color=fff&size=75&bold=true" style="border-radius: 50%; border: 3px solid white; width: 75px; height: 75px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative; z-index: 1;">
+                                <img src="${profil.foto}" style="border-radius: 50%; border: 3px solid white; width: 75px; height: 75px; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative; z-index: 1;">
                                 <div style="position: relative; z-index: 1; color: white;">
-                                    <div style="font-weight: 900; font-size: 22px; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${sales.nama_sales}</div>
+                                    <div style="font-weight: 900; font-size: 22px; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${profil.nama}</div>
                                     <div style="font-size: 13px; font-weight: 600; color: #34D399; margin-top: 3px;">💼 Sales Executive</div>
                                 </div>
                             </div>
-                            <!-- Histori Kunjungan -->
                             <div class="history-scroll" style="padding: 20px; background: white; max-height: 250px; overflow-y: auto;">
-                                <div style="font-size: 12px; font-weight: 800; color: #6B7280; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">📍 Histori Hari Ini</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #6B7280; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">📍 Histori Kunjungan</div>
                                 ${historyHTML}
                             </div>
                         </div>
                     `;
 
                     L.marker([sales.latitude, sales.longitude], {icon: ikonLive})
-                     .bindPopup(profilePopupHTML, { 
-                         className: 'profile-popup-custom', 
-                         minWidth: 330,
-                         offset: [180, 20] // <-- KOORDINAT INI YANG MENGGESER POPUP KE SEBELAH KANAN MARKER
-                     })
+                     .bindPopup(profilePopupHTML, { className: 'profile-popup-custom', minWidth: 330, offset: [180, 20] })
                      .addTo(layerLive);
                 });
             }
@@ -299,9 +361,14 @@
             if (menuAktif === 'track') {
                 html += `<div class="content-title">📡 Tim di Lapangan <span style="background:#10B981;color:white;padding:2px 8px;border-radius:10px;font-size:12px;">${Object.keys(dataSalesTerakhir).length} Aktif</span></div>`;
                 Object.values(dataSalesTerakhir).forEach(sales => {
+                    const profil = getProfilSales(sales.nama_sales);
                     html += `
-                    <div class="data-card" onclick="terbangKeLokasi(${sales.latitude}, ${sales.longitude}, '${sales.nama_sales}')">
-                        <div class="data-title">👤 ${sales.nama_sales}</div>
+                    <div class="data-card" onclick="terbangKeLokasi(${sales.latitude}, ${sales.longitude})">
+                        <div class="data-title">
+                            <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
+                            ${profil.nama} 
+                            <button class="btn-edit-profil" style="margin-left: auto;" onclick="bukaModalProfil('${sales.nama_sales}', event)">⚙️ Edit</button>
+                        </div>
                         <div class="data-subtitle">📍 Klik untuk melacak titik GPS</div>
                     </div>`;
                 });
@@ -310,25 +377,48 @@
             else if (menuAktif === 'report') {
                 html += `<div class="content-title">📑 Laporan Terbaru</div>`;
                 dataLaporan.forEach(toko => {
+                    const profil = getProfilSales(toko.nama_sales);
                     html += `
-                    <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin}, '${toko.nama_toko_klien}')" style="border-left-color: #3B82F6;">
+                    <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: #3B82F6;">
                         <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
-                        <div class="data-subtitle">Oleh: <b>${toko.nama_sales}</b></div>
+                        <div class="data-subtitle">Oleh: <b>${profil.nama}</b></div>
                         <div class="data-desc">"${toko.catatan_pertemuan}"</div>
                     </div>`;
                 });
                 if(dataLaporan.length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada laporan masuk.</div>`;
             }
             else if (menuAktif === 'stats') {
+                // Logika Filter Tanggal
+                let jumlahKunjungan = 0;
+                const hariIni = new Date();
+                
+                dataLaporan.forEach(lap => {
+                    const tglLap = new Date(lap.created_at);
+                    const bedaWaktu = Math.abs(hariIni - tglLap);
+                    const bedaHari = Math.ceil(bedaWaktu / (1000 * 60 * 60 * 24));
+                    
+                    if(rentangStatistik === 'harian' && bedaHari <= 1 && tglLap.getDate() === hariIni.getDate()) jumlahKunjungan++;
+                    if(rentangStatistik === 'mingguan' && bedaHari <= 7) jumlahKunjungan++;
+                    if(rentangStatistik === 'bulanan' && bedaHari <= 30) jumlahKunjungan++;
+                });
+
                 html += `
                 <div class="content-title">📊 Ringkasan Operasional</div>
-                <div style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; text-align: center; box-shadow: 0 5px 15px rgba(16,185,129,0.3);">
-                    <div style="font-size: 35px; font-weight: 900;">${Object.keys(dataSalesTerakhir).length}</div>
-                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Aktif Bergerak</div>
+                
+                <div class="stat-tabs">
+                    <div class="stat-tab ${rentangStatistik === 'harian' ? 'active' : ''}" onclick="ubahRentangStatistik('harian')">Hari Ini</div>
+                    <div class="stat-tab ${rentangStatistik === 'mingguan' ? 'active' : ''}" onclick="ubahRentangStatistik('mingguan')">7 Hari</div>
+                    <div class="stat-tab ${rentangStatistik === 'bulanan' ? 'active' : ''}" onclick="ubahRentangStatistik('bulanan')">30 Hari</div>
                 </div>
+
+                <div style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; text-align: center; box-shadow: 0 5px 15px rgba(16,185,129,0.3);">
+                    <div style="font-size: 35px; font-weight: 900;">${jumlahKunjungan}</div>
+                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Kunjungan Toko (${rentangStatistik})</div>
+                </div>
+                
                 <div style="background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(59,130,246,0.3);">
-                    <div style="font-size: 35px; font-weight: 900;">${dataLaporan.length}</div>
-                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Total Kunjungan Toko</div>
+                    <div style="font-size: 35px; font-weight: 900;">${Object.keys(dataSalesTerakhir).length}</div>
+                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Aktif Bergerak (Live)</div>
                 </div>`;
             }
             panel.innerHTML = html;
