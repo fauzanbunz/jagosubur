@@ -56,7 +56,7 @@
         .btn-edit-profil { background: #E5E7EB; border: none; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-edit-profil:hover { background: #10B981; color: white; }
 
-        /* --- MODAL EDIT PROFIL LOKAL --- */
+        /* --- MODAL EDIT PROFIL LOKAL DENGAN UPLOAD MANUAL --- */
         #modal-profil { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 99999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 30px; border-radius: 20px; width: 350px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
         .modal-box h3 { color: #064E3B; font-weight: 900; margin-bottom: 20px; }
@@ -64,6 +64,11 @@
         .modal-btn-group button { flex: 1; padding: 12px; border-radius: 10px; font-weight: 800; cursor: pointer; border: none; }
         .btn-save { background: #10B981; color: white; }
         .btn-cancel { background: #F3F4F6; color: #4B5563; }
+        
+        .upload-container { background: #F9FAFB; border: 2px dashed #D1D5DB; border-radius: 12px; padding: 15px; text-align: center; margin-top: 15px; transition: 0.3s; }
+        .upload-container:hover { border-color: #10B981; background: #F0FDF4; }
+        #edit-file-foto { width: 100%; font-size: 12px; color: #6B7280; cursor: pointer; }
+        #preview-foto { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px auto 0; display: none; border: 3px solid #10B981; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
 
         /* --- TABS STATISTIK --- */
         .stat-tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #E5E7EB; padding: 5px; border-radius: 12px; }
@@ -92,21 +97,29 @@
 </head>
 <body>
 
-    <!-- MODAL PENGATURAN PROFIL LOKAL -->
+    <!-- MODAL PENGATURAN PROFIL DENGAN UPLOAD GAMBAR MANUAL -->
     <div id="modal-profil">
         <div class="modal-box">
             <h3>Pengaturan Profil Sales</h3>
             <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Perubahan ini hanya tampil di Dasbor Web ini.</p>
             <input type="hidden" id="edit-nama-asli">
-            <div class="input-group">
+            <!-- Input tersembunyi untuk menyimpan data foto yang sudah di-compress -->
+            <input type="hidden" id="edit-base64-foto">
+            
+            <div class="input-group" style="margin-bottom: 10px;">
                 <input type="text" id="edit-nama-tampilan" placeholder="Nama Tampilan Bebas">
             </div>
-            <div class="input-group" style="margin-bottom: 0;">
-                <input type="text" id="edit-url-foto" placeholder="Link URL Foto (Opsional)">
+            
+            <!-- Area Upload Foto Baru -->
+            <div class="upload-container">
+                <label for="edit-file-foto" style="display: block; text-align: left; font-size: 12px; font-weight: 800; color: #4B5563; margin-bottom: 8px;">Upload Foto Baru:</label>
+                <input type="file" id="edit-file-foto" accept="image/*">
+                <img id="preview-foto" src="" alt="Preview">
             </div>
+
             <div class="modal-btn-group">
                 <button class="btn-cancel" onclick="tutupModalProfil()">Batal</button>
-                <button class="btn-save" onclick="simpanProfilLokal()">Simpan</button>
+                <button class="btn-save" onclick="simpanProfilLokal()">Simpan Profil</button>
             </div>
         </div>
     </div>
@@ -166,9 +179,8 @@
         let dataSalesTerakhir = {}; 
         let dataLaporan = []; 
         let menuAktif = 'track';
-        let rentangStatistik = 'harian'; // Mode statistik: harian, mingguan, bulanan
+        let rentangStatistik = 'harian'; 
 
-        // Mengambil profil yang tersimpan di browser web
         let profilLokal = JSON.parse(localStorage.getItem('jago_subur_profil')) || {};
 
         function getProfilSales(namaAsli) {
@@ -184,12 +196,61 @@
             };
         }
 
-        // FUNGSI MODAL PENGATURAN PROFIL
+        // --- SISTEM AUTO COMPRESS FOTO UPLOAD MANAUL ---
+        document.getElementById('edit-file-foto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Mengecilkan dimensi foto otomatis menjadi max 200x200 pixel agar browser tidak lemot
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                    } else {
+                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Mengubah gambar menjadi teks kode Base64 untuk disimpan
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    document.getElementById('preview-foto').src = dataUrl;
+                    document.getElementById('preview-foto').style.display = 'block';
+                    document.getElementById('edit-base64-foto').value = dataUrl;
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
         function bukaModalProfil(namaAsli, e) {
-            e.stopPropagation(); // Mencegah klik men-trigger efek zoom peta
+            e.stopPropagation(); 
             document.getElementById('edit-nama-asli').value = namaAsli;
             document.getElementById('edit-nama-tampilan').value = profilLokal[namaAsli] ? profilLokal[namaAsli].namaTampilan : namaAsli;
-            document.getElementById('edit-url-foto').value = profilLokal[namaAsli] ? profilLokal[namaAsli].fotoUrl : '';
+            
+            // Reset input file
+            document.getElementById('edit-file-foto').value = ''; 
+            
+            // Tampilkan foto lama jika ada
+            const existingFoto = profilLokal[namaAsli] ? profilLokal[namaAsli].fotoUrl : '';
+            document.getElementById('edit-base64-foto').value = existingFoto;
+            
+            if (existingFoto && existingFoto.startsWith('data:image')) {
+                document.getElementById('preview-foto').src = existingFoto;
+                document.getElementById('preview-foto').style.display = 'block';
+            } else {
+                document.getElementById('preview-foto').style.display = 'none';
+            }
+            
             document.getElementById('modal-profil').style.display = 'flex';
         }
 
@@ -200,14 +261,14 @@
         function simpanProfilLokal() {
             const namaAsli = document.getElementById('edit-nama-asli').value;
             const namaTampilan = document.getElementById('edit-nama-tampilan').value;
-            const fotoUrl = document.getElementById('edit-url-foto').value;
+            const fotoUrl = document.getElementById('edit-base64-foto').value; // Mengambil hasil compress Base64
             
             profilLokal[namaAsli] = { namaTampilan: namaTampilan, fotoUrl: fotoUrl };
-            localStorage.setItem('jago_subur_profil', JSON.stringify(profilLokal)); // Simpan ke browser
+            localStorage.setItem('jago_subur_profil', JSON.stringify(profilLokal)); 
             
             tutupModalProfil();
             renderPanelKiri();
-            tarikDataSupabase(); // Refresh peta dan popup
+            tarikDataSupabase(); 
         }
 
         async function prosesLogin() {
@@ -274,7 +335,6 @@
         }
 
         async function tarikDataSupabase() {
-            // 1. Tarik Data Laporan Kunjungan
             const resToko = await db.from('laporan_kunjungan').select('*').order('created_at', { ascending: false });
             if (resToko.data) {
                 dataLaporan = resToko.data;
@@ -296,7 +356,6 @@
                 });
             }
 
-            // 2. Tarik Rute & Hitung Titik Live
             const resRute = await db.from('location_breadcrumbs').select('*').order('recorded_at', { ascending: true });
             if (resRute.data && resRute.data.length > 0) {
                 const latlngs = resRute.data.map(t => [t.latitude, t.longitude]);
@@ -388,7 +447,6 @@
                 if(dataLaporan.length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada laporan masuk.</div>`;
             }
             else if (menuAktif === 'stats') {
-                // Logika Filter Tanggal
                 let jumlahKunjungan = 0;
                 const hariIni = new Date();
                 
