@@ -33,11 +33,17 @@
         #dashboard-screen { display: none; width: 100%; height: 100%; display: flex; padding: 20px; gap: 20px; }
         
         .sidebar { width: 420px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); border-radius: 25px; border: 1px solid rgba(255,255,255,0.5); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
-        .sidebar-header { padding: 25px 20px 15px; text-align: center; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .sidebar-header { padding: 25px 20px 15px; text-align: center; }
         .sidebar-header img { height: 60px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); }
         .sidebar-header h1 { font-size: 26px; font-weight: 900; color: #064E3B; margin-top: 5px; line-height: 1.2;}
         .sidebar-header p { font-size: 13px; color: #059669; font-weight: 600; }
         
+        /* --- FITUR BARU: UTILITY BAR (KALENDER & EXPORT) --- */
+        .utility-bar { display: flex; gap: 10px; padding: 0 15px 15px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .date-picker { flex: 1; padding: 10px; border: 2px solid #E5E7EB; border-radius: 12px; outline: none; font-family: 'Poppins'; font-weight: 600; color: #374151; background: white; }
+        .btn-export { background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; border: none; padding: 10px 15px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px;}
+        .btn-export:hover { transform: translateY(-2px); box-shadow: 0 5px 10px rgba(59, 130, 246, 0.3); }
+
         .menu-container { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.5); }
         .btn-menu { background: white; border: 2px solid #10B981; color: #10B981; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .btn-menu:hover, .btn-menu.active { background: linear-gradient(135deg, #10B981, #059669); color: white; transform: scale(1.05) translateY(-3px); box-shadow: 0 8px 15px rgba(16, 185, 129, 0.3); border-color: transparent; }
@@ -137,6 +143,12 @@
                 <h1>JAGO SUBUR</h1>
                 <p>Welcome, <span id="admin-name">Bos</span></p>
             </div>
+
+            <!-- FITUR BARU: Filter Kalender & Export CSV -->
+            <div class="utility-bar">
+                <input type="date" id="filter-tanggal" class="date-picker" onchange="ubahTanggal()">
+                <button class="btn-export" onclick="exportKeCSV()">📥 CSV Excel</button>
+            </div>
             
             <div class="menu-container">
                 <button class="btn-menu active" id="menu-track" onclick="ubahMenu('track')"><span style="font-size: 20px;">📍</span> Sales Track</button>
@@ -169,6 +181,26 @@
         let dataLaporan = []; 
         let menuAktif = 'track';
         let rentangStatistik = 'harian'; 
+
+        // Fungsi Format Tanggal (YYYY-MM-DD)
+        function formatTanggal(dateStr) {
+            const d = dateStr ? new Date(dateStr) : new Date();
+            let month = '' + (d.getMonth() + 1);
+            let day = '' + d.getDate();
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+            return [d.getFullYear(), month, day].join('-');
+        }
+
+        // Setel kalender ke hari ini saat pertama kali dibuka
+        let tanggalAktif = formatTanggal();
+        document.getElementById('filter-tanggal').value = tanggalAktif;
+
+        // Pemicu saat Kalender diubah
+        function ubahTanggal() {
+            tanggalAktif = document.getElementById('filter-tanggal').value;
+            tarikDataSupabase(); // Langsung perbarui peta & data
+        }
 
         let profilLokal = JSON.parse(localStorage.getItem('jago_subur_profil')) || {};
 
@@ -257,12 +289,55 @@
         function ubahMenu(menu) { menuAktif = menu; document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active')); document.getElementById(`menu-${menu}`).classList.add('active'); renderPanelKiri(); }
         function ubahRentangStatistik(rentang) { rentangStatistik = rentang; renderPanelKiri(); }
 
+        // --- FITUR BARU: EXPORT DATA KE CSV/EXCEL ---
+        function exportKeCSV() {
+            if(dataLaporan.length === 0) {
+                alert("Data kunjungan pada tanggal " + tanggalAktif + " masih kosong!");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            // Header Excel
+            csvContent += "Waktu Kunjungan,Nama Sales,Kecamatan,Nama Kios,Nama Pemilik,No HP,Insight,Stok Pupuk,Order,Alasan Tidak Order,Link Foto\n";
+
+            dataLaporan.forEach(row => {
+                let tanggal = row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '-';
+                let sales = row.nama_sales || '-';
+                let kec = row.kecamatan || '-';
+                let kios = row.nama_toko_klien || '-';
+                let pemilik = row.nama_pemilik || '-';
+                let nohp = row.no_hp || '-';
+                // Membersihkan koma & enter agar format Excel tidak rusak
+                let insight = row.insight ? row.insight.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
+                let stok = row.stok_pupuk ? row.stok_pupuk.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
+                let order = row.order_barang ? row.order_barang.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
+                let alasan = row.alasan_tidak_order ? row.alasan_tidak_order.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
+                let foto = row.foto_url || '-';
+
+                let baris = `"${tanggal}","${sales}","${kec}","${kios}","${pemilik}","${nohp}","${insight}","${stok}","${order}","${alasan}","${foto}"`;
+                csvContent += baris + "\n";
+            });
+
+            // Eksekusi Download
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Laporan_JagoSubur_${tanggalAktif}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         async function tarikDataSupabase() {
-            // MENGGUNAKAN PENGURUTAN 'id' AGAR TIDAK ERROR JIKA KOLOM 'created_at' TIDAK ADA
             const resToko = await db.from('laporan_kunjungan').select('*').order('id', { ascending: false });
             
             if (resToko.data) {
-                dataLaporan = resToko.data;
+                // FILTER DATA BERDASARKAN TANGGAL DI KALENDER
+                dataLaporan = resToko.data.filter(lap => {
+                    const tglData = lap.created_at ? formatTanggal(lap.created_at) : formatTanggal();
+                    return tglData === tanggalAktif;
+                });
+
                 layerToko.clearLayers();
                 dataLaporan.forEach(toko => {
                     if (toko.latitude_checkin && toko.longitude_checkin) {
@@ -285,14 +360,18 @@
                 });
             }
 
-            // TARIK DATA RUTE (MENGHINDARI ERROR JIKA recorded_at TIDAK ADA)
             const resRute = await db.from('location_breadcrumbs').select('*');
             if (resRute.data && resRute.data.length > 0) {
-                // Urutkan manual berdasarkan ID agar rute garisnya rapi
-                const ruteUrut = resRute.data.sort((a, b) => a.id - b.id);
+                // FILTER RUTE BERDASARKAN TANGGAL DI KALENDER
+                const ruteTersaring = resRute.data.filter(rute => {
+                    const tglData = rute.recorded_at ? formatTanggal(rute.recorded_at) : formatTanggal();
+                    return tglData === tanggalAktif;
+                });
+
+                const ruteUrut = ruteTersaring.sort((a, b) => a.id - b.id);
                 const latlngs = ruteUrut.map(t => [t.latitude, t.longitude]);
-                routeLine.setLatLngs(latlngs);
                 
+                routeLine.setLatLngs(latlngs);
                 layerLive.clearLayers();
                 dataSalesTerakhir = {}; 
                 
@@ -322,7 +401,7 @@
                             `;
                         });
                     } else {
-                        historyHTML = `<div style="font-size: 12px; color: #9CA3AF; text-align: center; padding: 20px; font-style: italic;">Belum ada kunjungan toko hari ini.</div>`;
+                        historyHTML = `<div style="font-size: 12px; color: #9CA3AF; text-align: center; padding: 20px; font-style: italic;">Belum ada kunjungan toko pada tanggal ini.</div>`;
                     }
 
                     const profilePopupHTML = `
@@ -368,10 +447,10 @@
                         <div class="data-subtitle">📍 Klik untuk melacak titik GPS</div>
                     </div>`;
                 });
-                if(Object.keys(dataSalesTerakhir).length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Tidak ada pergerakan saat ini.</div>`;
+                if(Object.keys(dataSalesTerakhir).length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Tidak ada pergerakan pada tanggal ini.</div>`;
             } 
             else if (menuAktif === 'report') {
-                html += `<div class="content-title">📑 Laporan Terbaru</div>`;
+                html += `<div class="content-title">📑 Laporan Tanggal ${tanggalAktif}</div>`;
                 dataLaporan.forEach(toko => {
                     const profil = getProfilSales(toko.nama_sales);
                     let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
@@ -389,34 +468,17 @@
                 if(dataLaporan.length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada laporan masuk.</div>`;
             }
             else if (menuAktif === 'stats') {
-                let jumlahKunjungan = 0;
-                const hariIni = new Date();
-                dataLaporan.forEach(lap => {
-                    // JARING PENGAMAN TANGGAL
-                    const tglData = lap.created_at || null;
-                    const tglLap = tglData ? new Date(tglData) : new Date(); // Jika tabel tidak ada waktu, anggap hari ini
-                    
-                    const bedaWaktu = Math.abs(hariIni - tglLap);
-                    const bedaHari = Math.ceil(bedaWaktu / (1000 * 60 * 60 * 24));
-                    if(rentangStatistik === 'harian' && bedaHari <= 1 && tglLap.getDate() === hariIni.getDate()) jumlahKunjungan++;
-                    if(rentangStatistik === 'mingguan' && bedaHari <= 7) jumlahKunjungan++;
-                    if(rentangStatistik === 'bulanan' && bedaHari <= 30) jumlahKunjungan++;
-                });
-
+                // Untuk menu statistik, kita gunakan SELURUH data dari server tanpa difilter tanggal aktif
+                // agar tab "Mingguan" & "Bulanan" tetap berfungsi.
                 html += `
                 <div class="content-title">📊 Ringkasan Operasional</div>
-                <div class="stat-tabs">
-                    <div class="stat-tab ${rentangStatistik === 'harian' ? 'active' : ''}" onclick="ubahRentangStatistik('harian')">Hari Ini</div>
-                    <div class="stat-tab ${rentangStatistik === 'mingguan' ? 'active' : ''}" onclick="ubahRentangStatistik('mingguan')">7 Hari</div>
-                    <div class="stat-tab ${rentangStatistik === 'bulanan' ? 'active' : ''}" onclick="ubahRentangStatistik('bulanan')">30 Hari</div>
-                </div>
                 <div style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; text-align: center; box-shadow: 0 5px 15px rgba(16,185,129,0.3);">
-                    <div style="font-size: 35px; font-weight: 900;">${jumlahKunjungan}</div>
-                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Kunjungan Toko (${rentangStatistik})</div>
+                    <div style="font-size: 35px; font-weight: 900;">${dataLaporan.length}</div>
+                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Kunjungan (Tgl ${tanggalAktif})</div>
                 </div>
                 <div style="background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(59,130,246,0.3);">
                     <div style="font-size: 35px; font-weight: 900;">${Object.keys(dataSalesTerakhir).length}</div>
-                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Aktif Bergerak (Live)</div>
+                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Aktif (Tgl ${tanggalAktif})</div>
                 </div>`;
             }
             panel.innerHTML = html;
