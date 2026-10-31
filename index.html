@@ -32,7 +32,7 @@
         /* --- DASHBOARD UTAMA --- */
         #dashboard-screen { display: none; width: 100%; height: 100%; display: flex; padding: 20px; gap: 20px; }
         
-        .sidebar { width: 380px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); border-radius: 25px; border: 1px solid rgba(255,255,255,0.5); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
+        .sidebar { width: 420px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); border-radius: 25px; border: 1px solid rgba(255,255,255,0.5); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
         .sidebar-header { padding: 25px 20px 15px; text-align: center; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .sidebar-header img { height: 60px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); }
         .sidebar-header h1 { font-size: 26px; font-weight: 900; color: #064E3B; margin-top: 5px; line-height: 1.2;}
@@ -51,12 +51,12 @@
         .data-card:hover { transform: translateX(5px); box-shadow: 0 6px 12px rgba(16,185,129,0.15); }
         .data-title { font-weight: 800; color: #111827; font-size: 15px; display: flex; align-items: center; gap: 8px;}
         .data-subtitle { font-size: 12px; color: #6B7280; margin-top: 3px; font-weight: 600; }
-        .data-desc { font-size: 12px; color: #4B5563; margin-top: 8px; font-style: italic; background: #F3F4F6; padding: 8px; border-radius: 8px; }
+        .data-desc { font-size: 12px; color: #4B5563; margin-top: 8px; background: #F3F4F6; padding: 10px; border-radius: 8px; line-height: 1.5;}
 
         .btn-edit-profil { background: #E5E7EB; border: none; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-edit-profil:hover { background: #10B981; color: white; }
 
-        /* --- MODAL EDIT PROFIL LOKAL DENGAN UPLOAD MANUAL --- */
+        /* --- MODAL EDIT PROFIL --- */
         #modal-profil { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 99999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 30px; border-radius: 20px; width: 350px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
         .modal-box h3 { color: #064E3B; font-weight: 900; margin-bottom: 20px; }
@@ -64,20 +64,16 @@
         .modal-btn-group button { flex: 1; padding: 12px; border-radius: 10px; font-weight: 800; cursor: pointer; border: none; }
         .btn-save { background: #10B981; color: white; }
         .btn-cancel { background: #F3F4F6; color: #4B5563; }
-        
         .upload-container { background: #F9FAFB; border: 2px dashed #D1D5DB; border-radius: 12px; padding: 15px; text-align: center; margin-top: 15px; transition: 0.3s; }
-        .upload-container:hover { border-color: #10B981; background: #F0FDF4; }
         #edit-file-foto { width: 100%; font-size: 12px; color: #6B7280; cursor: pointer; }
-        #preview-foto { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px auto 0; display: none; border: 3px solid #10B981; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #preview-foto { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px auto 0; display: none; border: 3px solid #10B981; }
 
-        /* --- TABS STATISTIK --- */
         .stat-tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #E5E7EB; padding: 5px; border-radius: 12px; }
         .stat-tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 800; color: #6B7280; cursor: pointer; border-radius: 8px; transition: 0.3s; }
         .stat-tab.active { background: white; color: #10B981; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
         .map-wrapper { flex: 1; border-radius: 25px; overflow: hidden; border: 5px solid rgba(255, 255, 255, 0.6); box-shadow: 0 15px 35px rgba(0,0,0,0.3); position: relative; background: white; }
         #map { width: 100%; height: 100%; z-index: 1; }
-        
         .live-indicator { position: absolute; top: 20px; right: 20px; z-index: 1000; background: rgba(16, 185, 129, 0.9); color: white; padding: 8px 20px; border-radius: 30px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: pulse 2s infinite; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(5px);}
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
@@ -86,7 +82,7 @@
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 10px; }
 
         .profile-popup-custom .leaflet-popup-content-wrapper { padding: 0 !important; border-radius: 20px; overflow: hidden; border: 3px solid #10B981; box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important; }
-        .profile-popup-custom .leaflet-popup-content { margin: 0 !important; width: 330px !important; }
+        .profile-popup-custom .leaflet-popup-content { margin: 0 !important; width: 340px !important; }
         .profile-popup-custom .leaflet-popup-tip-container { display: none !important; }
         .history-scroll::-webkit-scrollbar { width: 4px; }
         .history-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
@@ -97,26 +93,21 @@
 </head>
 <body>
 
-    <!-- MODAL PENGATURAN PROFIL DENGAN UPLOAD GAMBAR MANUAL -->
+    <!-- MODAL EDIT PROFIL LOKAL -->
     <div id="modal-profil">
         <div class="modal-box">
             <h3>Pengaturan Profil Sales</h3>
             <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Perubahan ini hanya tampil di Dasbor Web ini.</p>
             <input type="hidden" id="edit-nama-asli">
-            <!-- Input tersembunyi untuk menyimpan data foto yang sudah di-compress -->
             <input type="hidden" id="edit-base64-foto">
-            
             <div class="input-group" style="margin-bottom: 10px;">
                 <input type="text" id="edit-nama-tampilan" placeholder="Nama Tampilan Bebas">
             </div>
-            
-            <!-- Area Upload Foto Baru -->
             <div class="upload-container">
                 <label for="edit-file-foto" style="display: block; text-align: left; font-size: 12px; font-weight: 800; color: #4B5563; margin-bottom: 8px;">Upload Foto Baru:</label>
                 <input type="file" id="edit-file-foto" accept="image/*">
                 <img id="preview-foto" src="" alt="Preview">
             </div>
-
             <div class="modal-btn-group">
                 <button class="btn-cancel" onclick="tutupModalProfil()">Batal</button>
                 <button class="btn-save" onclick="simpanProfilLokal()">Simpan Profil</button>
@@ -150,7 +141,7 @@
             
             <div class="menu-container">
                 <button class="btn-menu active" id="menu-track" onclick="ubahMenu('track')"><span style="font-size: 20px;">📍</span> Sales Track</button>
-                <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')"><span style="font-size: 20px;">📝</span> Report Kunjungan</button>
+                <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')"><span style="font-size: 20px;">📝</span> Laporan Tim</button>
                 <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')" style="grid-column: span 2;"><span style="font-size: 20px;">📊</span> Overview & Statistik</button>
                 <button class="btn-logout-small" onclick="location.reload()">Keluar (Logout)</button>
             </div>
@@ -170,7 +161,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // API KEY SUPABASE (KUNCI YANG BENAR DARI TUAN)
         const supabaseUrl = 'https://cuwtrhdgwyxyuipthdbg.supabase.co';
         const supabaseKey = 'sb_publishable_syDLCuoKh9NKTRsfTRmpyQ_a3r5_GQG'; 
         const db = supabase.createClient(supabaseUrl, supabaseKey);
@@ -190,39 +180,26 @@
                     foto: profilLokal[namaAsli].fotoUrl || `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true`
                 };
             }
-            return {
-                nama: namaAsli,
-                foto: `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true`
-            };
+            return { nama: namaAsli, foto: `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true` };
         }
 
-        // --- SISTEM AUTO COMPRESS FOTO UPLOAD MANAUL ---
+        // COMPRESS FOTO LOKAL
         document.getElementById('edit-file-foto').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
-                    // Mengecilkan dimensi foto otomatis menjadi max 200x200 pixel agar browser tidak lemot
                     const canvas = document.createElement('canvas');
                     const MAX_SIZE = 200;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                    } else {
-                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                    }
+                    let width = img.width, height = img.height;
+                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Mengubah gambar menjadi teks kode Base64 untuk disimpan
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    
                     document.getElementById('preview-foto').src = dataUrl;
                     document.getElementById('preview-foto').style.display = 'block';
                     document.getElementById('edit-base64-foto').value = dataUrl;
@@ -236,105 +213,55 @@
             e.stopPropagation(); 
             document.getElementById('edit-nama-asli').value = namaAsli;
             document.getElementById('edit-nama-tampilan').value = profilLokal[namaAsli] ? profilLokal[namaAsli].namaTampilan : namaAsli;
-            
-            // Reset input file
             document.getElementById('edit-file-foto').value = ''; 
-            
-            // Tampilkan foto lama jika ada
             const existingFoto = profilLokal[namaAsli] ? profilLokal[namaAsli].fotoUrl : '';
             document.getElementById('edit-base64-foto').value = existingFoto;
-            
             if (existingFoto && existingFoto.startsWith('data:image')) {
                 document.getElementById('preview-foto').src = existingFoto;
                 document.getElementById('preview-foto').style.display = 'block';
-            } else {
-                document.getElementById('preview-foto').style.display = 'none';
-            }
-            
+            } else { document.getElementById('preview-foto').style.display = 'none'; }
             document.getElementById('modal-profil').style.display = 'flex';
         }
 
-        function tutupModalProfil() {
-            document.getElementById('modal-profil').style.display = 'none';
-        }
+        function tutupModalProfil() { document.getElementById('modal-profil').style.display = 'none'; }
 
         function simpanProfilLokal() {
             const namaAsli = document.getElementById('edit-nama-asli').value;
             const namaTampilan = document.getElementById('edit-nama-tampilan').value;
-            const fotoUrl = document.getElementById('edit-base64-foto').value; // Mengambil hasil compress Base64
-            
+            const fotoUrl = document.getElementById('edit-base64-foto').value; 
             profilLokal[namaAsli] = { namaTampilan: namaTampilan, fotoUrl: fotoUrl };
             localStorage.setItem('jago_subur_profil', JSON.stringify(profilLokal)); 
-            
-            tutupModalProfil();
-            renderPanelKiri();
-            tarikDataSupabase(); 
+            tutupModalProfil(); renderPanelKiri(); tarikDataSupabase(); 
         }
 
         async function prosesLogin() {
             const user = document.getElementById('admin-user').value;
             const pass = document.getElementById('admin-pass').value;
             const btn = document.querySelector('.btn-login');
-            
-            if(!user || !pass) return;
-            btn.innerText = "Memverifikasi...";
-
-            const { data, error } = await db.from('sales_team')
-                .select('*').eq('username', user).eq('password', pass).eq('role', 'admin').single();
-
-            if (error || !data) {
-                document.getElementById('login-error').style.display = 'block';
-                btn.innerText = "Masuk Sistem";
-            } else {
-                document.getElementById('admin-name').innerText = data.nama_lengkap;
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('dashboard-screen').style.display = 'flex';
-                inisialisasiPeta();
-            }
+            if(!user || !pass) return; btn.innerText = "Memverifikasi...";
+            const { data, error } = await db.from('sales_team').select('*').eq('username', user).eq('password', pass).eq('role', 'admin').single();
+            if (error || !data) { document.getElementById('login-error').style.display = 'block'; btn.innerText = "Masuk Sistem"; } 
+            else { document.getElementById('admin-name').innerText = data.nama_lengkap; document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard-screen').style.display = 'flex'; inisialisasiPeta(); }
         }
 
         function inisialisasiPeta() {
             map = L.map('map', { zoomControl: false }).setView([-7.3692565, 112.6768411], 14);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
             L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution: '© Google Maps' }).addTo(map);
-
             routeLine = L.polyline([], {color: '#10B981', weight: 6, opacity: 0.7}).addTo(map);
-            layerToko = L.layerGroup().addTo(map);
-            layerLive = L.layerGroup().addTo(map);
-
-            tarikDataSupabase();
-            sinkronisasiBerkala = setInterval(tarikDataSupabase, 5000);
+            layerToko = L.layerGroup().addTo(map); layerLive = L.layerGroup().addTo(map);
+            tarikDataSupabase(); sinkronisasiBerkala = setInterval(tarikDataSupabase, 5000);
         }
 
-        const ikonToko = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-        });
+        const ikonToko = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+        const ikonLive = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
 
-        const ikonLive = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-        });
-
-        function terbangKeLokasi(lat, lng) {
-            map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 });
-        }
-
-        function ubahMenu(menu) {
-            menuAktif = menu;
-            document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`menu-${menu}`).classList.add('active');
-            renderPanelKiri();
-        }
-
-        function ubahRentangStatistik(rentang) {
-            rentangStatistik = rentang;
-            renderPanelKiri();
-        }
+        function terbangKeLokasi(lat, lng) { map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 }); }
+        function ubahMenu(menu) { menuAktif = menu; document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active')); document.getElementById(`menu-${menu}`).classList.add('active'); renderPanelKiri(); }
+        function ubahRentangStatistik(rentang) { rentangStatistik = rentang; renderPanelKiri(); }
 
         async function tarikDataSupabase() {
+            // 1. Tarik Data Laporan Kunjungan (FORMAT BARU)
             const resToko = await db.from('laporan_kunjungan').select('*').order('created_at', { ascending: false });
             if (resToko.data) {
                 dataLaporan = resToko.data;
@@ -342,13 +269,19 @@
                 dataLaporan.forEach(toko => {
                     if (toko.latitude_checkin && toko.longitude_checkin) {
                         const profil = getProfilSales(toko.nama_sales);
-                        const idCardHTML = `<div style="font-family: 'Poppins'; width: 220px; text-align: center; border: 2px solid #3B82F6;">
-                            <div style="background: #3B82F6; color: white; padding: 10px; font-weight: 800; font-size: 15px;">👤 ${profil.nama}</div>
-                            <div style="padding: 15px; background: white;">
-                                <span style="font-size: 10px; color: gray; font-weight:bold;">VISIT TOKO</span><br>
+                        
+                        // POPUP MARKER TOKO INDIVIDU (DI PETA)
+                        const fotoMarkerToko = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover;">` : `<div style="padding:10px; background:#F3F4F6; color:#9CA3AF; font-size:12px; font-style:italic;">Tanpa Foto</div>`;
+                        const idCardHTML = `<div style="font-family: 'Poppins'; width: 250px; text-align: center; border: 2px solid #3B82F6; border-radius:12px; overflow:hidden; background:white;">
+                            <div style="background: #3B82F6; color: white; padding: 10px; font-weight: 900; font-size: 14px;">👤 ${profil.nama}</div>
+                            ${fotoMarkerToko}
+                            <div style="padding: 15px; text-align:left;">
                                 <b style="font-size: 15px; color: #111827;">🏪 ${toko.nama_toko_klien}</b>
-                                <hr style="margin: 8px 0; border: 0; border-top: 1px dashed #ccc;">
-                                <i style="font-size: 12px; color: #4B5563;">"${toko.catatan_pertemuan}"</i>
+                                <div style="font-size:11px; color:#6B7280; margin-bottom:8px;">📍 ${toko.kecamatan || '-'} | 👤 ${toko.nama_pemilik || '-'}</div>
+                                <div style="font-size: 11.5px; color: #374151; background:#F9FAFB; padding:10px; border-radius:8px; line-height: 1.5;">
+                                    <b style="color:#059669;">💡 Insight:</b> ${toko.insight || '-'}<br>
+                                    <b style="color:#059669;">🛒 Order:</b> ${toko.order_barang || '-'}
+                                </div>
                             </div></div>`;
                         L.marker([toko.latitude_checkin, toko.longitude_checkin], {icon: ikonToko})
                          .bindPopup(idCardHTML).addTo(layerToko);
@@ -356,6 +289,7 @@
                 });
             }
 
+            // 2. Tarik Rute & Titik Live Sales
             const resRute = await db.from('location_breadcrumbs').select('*').order('recorded_at', { ascending: true });
             if (resRute.data && resRute.data.length > 0) {
                 const latlngs = resRute.data.map(t => [t.latitude, t.longitude]);
@@ -364,23 +298,29 @@
                 layerLive.clearLayers();
                 dataSalesTerakhir = {}; 
                 
-                resRute.data.forEach(titik => {
-                    if (titik.nama_sales) dataSalesTerakhir[titik.nama_sales] = titik;
-                });
+                resRute.data.forEach(titik => { if (titik.nama_sales) dataSalesTerakhir[titik.nama_sales] = titik; });
 
                 Object.values(dataSalesTerakhir).forEach(sales => {
                     const profil = getProfilSales(sales.nama_sales);
-                    
                     let historyHTML = '';
                     let laporanSalesIni = dataLaporan.filter(l => l.nama_sales === sales.nama_sales);
                     
                     if (laporanSalesIni.length > 0) {
                         laporanSalesIni.forEach(lap => {
+                            // HTML UNTUK TIMELINE HISTORI KUNJUNGAN
+                            let fotoThumb = lap.foto_url ? `<img src="${lap.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:8px; margin-bottom:8px; border: 1px solid #E5E7EB;">` : '';
                             historyHTML += `
-                                <div style="border-left: 3px solid #10B981; padding-left: 15px; margin-bottom: 12px; position: relative;">
+                                <div style="border-left: 3px solid #10B981; padding-left: 15px; margin-bottom: 25px; position: relative;">
                                     <div style="position: absolute; left: -7.5px; top: 0; width: 12px; height: 12px; background: #10B981; border-radius: 50%; border: 2px solid white;"></div>
                                     <b style="font-size: 14px; color: #111827; display: block; margin-bottom: 2px;">🏪 ${lap.nama_toko_klien}</b>
-                                    <i style="font-size: 12px; color: #4B5563;">"${lap.catatan_pertemuan}"</i>
+                                    <span style="font-size:11px; color:#6B7280; display:block;">👤 Kios: ${lap.nama_pemilik || '-'} | 📍 Kec: ${lap.kecamatan || '-'}</span>
+                                    ${fotoThumb}
+                                    <div style="background: #F3F4F6; padding: 10px; border-radius: 8px; font-size: 11.5px; color: #374151; line-height: 1.5;">
+                                        <b style="color:#059669;">💡 Insight:</b> ${lap.insight || '-'}<br>
+                                        <b style="color:#059669;">📦 Stok:</b> ${lap.stok_pupuk || '-'}<br>
+                                        <b style="color:#059669;">🛒 Order:</b> ${lap.order_barang || '-'}<br>
+                                        <b style="color:#EF4444;">❌ Alasan:</b> ${lap.alasan_tidak_order || '-'}
+                                    </div>
                                 </div>
                             `;
                         });
@@ -388,8 +328,9 @@
                         historyHTML = `<div style="font-size: 12px; color: #9CA3AF; text-align: center; padding: 20px; font-style: italic;">Belum ada kunjungan toko hari ini.</div>`;
                     }
 
+                    // KARTU PROFIL RAKSASA KANAN (POPUP)
                     const profilePopupHTML = `
-                        <div style="width: 330px; font-family: 'Poppins', sans-serif;">
+                        <div style="width: 340px; font-family: 'Poppins', sans-serif;">
                             <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: url('https://raw.githubusercontent.com/fauzanbunz/jagosubur/main/Lanskap%20Sawah%20Jago%20Subur%20saat%20Fajar.png') center/cover; position: relative;">
                                 <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(6, 78, 59, 0.85);"></div>
                                 <img src="${profil.foto}" style="border-radius: 50%; border: 3px solid white; width: 75px; height: 75px; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative; z-index: 1;">
@@ -398,15 +339,15 @@
                                     <div style="font-size: 13px; font-weight: 600; color: #34D399; margin-top: 3px;">💼 Sales Executive</div>
                                 </div>
                             </div>
-                            <div class="history-scroll" style="padding: 20px; background: white; max-height: 250px; overflow-y: auto;">
-                                <div style="font-size: 12px; font-weight: 800; color: #6B7280; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">📍 Histori Kunjungan</div>
+                            <div class="history-scroll" style="padding: 20px; background: white; max-height: 300px; overflow-y: auto;">
+                                <div style="font-size: 12px; font-weight: 800; color: #6B7280; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📍 Histori Kunjungan</div>
                                 ${historyHTML}
                             </div>
                         </div>
                     `;
 
                     L.marker([sales.latitude, sales.longitude], {icon: ikonLive})
-                     .bindPopup(profilePopupHTML, { className: 'profile-popup-custom', minWidth: 330, offset: [180, 20] })
+                     .bindPopup(profilePopupHTML, { className: 'profile-popup-custom', minWidth: 340, offset: [185, 20] })
                      .addTo(layerLive);
                 });
             }
@@ -437,11 +378,16 @@
                 html += `<div class="content-title">📑 Laporan Terbaru</div>`;
                 dataLaporan.forEach(toko => {
                     const profil = getProfilSales(toko.nama_sales);
+                    let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
                     html += `
                     <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: #3B82F6;">
                         <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
                         <div class="data-subtitle">Oleh: <b>${profil.nama}</b></div>
-                        <div class="data-desc">"${toko.catatan_pertemuan}"</div>
+                        ${fotoThumbSidebar}
+                        <div class="data-desc">
+                            <b style="color:#059669;">Insight:</b> ${toko.insight || '-'}<br>
+                            <b style="color:#059669;">Order:</b> ${toko.order_barang || '-'}
+                        </div>
                     </div>`;
                 });
                 if(dataLaporan.length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada laporan masuk.</div>`;
@@ -449,12 +395,10 @@
             else if (menuAktif === 'stats') {
                 let jumlahKunjungan = 0;
                 const hariIni = new Date();
-                
                 dataLaporan.forEach(lap => {
                     const tglLap = new Date(lap.created_at);
                     const bedaWaktu = Math.abs(hariIni - tglLap);
                     const bedaHari = Math.ceil(bedaWaktu / (1000 * 60 * 60 * 24));
-                    
                     if(rentangStatistik === 'harian' && bedaHari <= 1 && tglLap.getDate() === hariIni.getDate()) jumlahKunjungan++;
                     if(rentangStatistik === 'mingguan' && bedaHari <= 7) jumlahKunjungan++;
                     if(rentangStatistik === 'bulanan' && bedaHari <= 30) jumlahKunjungan++;
@@ -462,18 +406,15 @@
 
                 html += `
                 <div class="content-title">📊 Ringkasan Operasional</div>
-                
                 <div class="stat-tabs">
                     <div class="stat-tab ${rentangStatistik === 'harian' ? 'active' : ''}" onclick="ubahRentangStatistik('harian')">Hari Ini</div>
                     <div class="stat-tab ${rentangStatistik === 'mingguan' ? 'active' : ''}" onclick="ubahRentangStatistik('mingguan')">7 Hari</div>
                     <div class="stat-tab ${rentangStatistik === 'bulanan' ? 'active' : ''}" onclick="ubahRentangStatistik('bulanan')">30 Hari</div>
                 </div>
-
                 <div style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; text-align: center; box-shadow: 0 5px 15px rgba(16,185,129,0.3);">
                     <div style="font-size: 35px; font-weight: 900;">${jumlahKunjungan}</div>
                     <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Kunjungan Toko (${rentangStatistik})</div>
                 </div>
-                
                 <div style="background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(59,130,246,0.3);">
                     <div style="font-size: 35px; font-weight: 900;">${Object.keys(dataSalesTerakhir).length}</div>
                     <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Aktif Bergerak (Live)</div>
