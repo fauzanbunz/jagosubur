@@ -162,4 +162,265 @@
     <script>
         const supabaseUrl = 'https://cuwtrhdgwyxyuipthdbg.supabase.co';
         const supabaseKey = 'sb_publishable_syDLCuoKh9NKTRsfTRmpyQ_a3r5_GQG'; 
-        const db = supabase.createClient(supabase
+        const db = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let map, routeLine, layerToko, layerLive, sinkronisasiBerkala;
+        let dataSalesTerakhir = {}; 
+        let dataLaporan = []; 
+        let menuAktif = 'track';
+        let rentangStatistik = 'harian'; 
+
+        let profilLokal = JSON.parse(localStorage.getItem('jago_subur_profil')) || {};
+
+        function getProfilSales(namaAsli) {
+            if (profilLokal[namaAsli]) {
+                return {
+                    nama: profilLokal[namaAsli].namaTampilan || namaAsli,
+                    foto: profilLokal[namaAsli].fotoUrl || `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true`
+                };
+            }
+            return { nama: namaAsli, foto: `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true` };
+        }
+
+        document.getElementById('edit-file-foto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 200;
+                    let width = img.width, height = img.height;
+                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('preview-foto').src = dataUrl;
+                    document.getElementById('preview-foto').style.display = 'block';
+                    document.getElementById('edit-base64-foto').value = dataUrl;
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        function bukaModalProfil(namaAsli, e) {
+            e.stopPropagation(); 
+            document.getElementById('edit-nama-asli').value = namaAsli;
+            document.getElementById('edit-nama-tampilan').value = profilLokal[namaAsli] ? profilLokal[namaAsli].namaTampilan : namaAsli;
+            document.getElementById('edit-file-foto').value = ''; 
+            const existingFoto = profilLokal[namaAsli] ? profilLokal[namaAsli].fotoUrl : '';
+            document.getElementById('edit-base64-foto').value = existingFoto;
+            if (existingFoto && existingFoto.startsWith('data:image')) {
+                document.getElementById('preview-foto').src = existingFoto;
+                document.getElementById('preview-foto').style.display = 'block';
+            } else { document.getElementById('preview-foto').style.display = 'none'; }
+            document.getElementById('modal-profil').style.display = 'flex';
+        }
+
+        function tutupModalProfil() { document.getElementById('modal-profil').style.display = 'none'; }
+        function simpanProfilLokal() {
+            const namaAsli = document.getElementById('edit-nama-asli').value;
+            const namaTampilan = document.getElementById('edit-nama-tampilan').value;
+            const fotoUrl = document.getElementById('edit-base64-foto').value; 
+            profilLokal[namaAsli] = { namaTampilan: namaTampilan, fotoUrl: fotoUrl };
+            localStorage.setItem('jago_subur_profil', JSON.stringify(profilLokal)); 
+            tutupModalProfil(); renderPanelKiri(); tarikDataSupabase(); 
+        }
+
+        async function prosesLogin() {
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+            const btn = document.querySelector('.btn-login');
+            if(!user || !pass) return; btn.innerText = "Memverifikasi...";
+            const { data, error } = await db.from('sales_team').select('*').eq('username', user).eq('password', pass).eq('role', 'admin').single();
+            if (error || !data) { document.getElementById('login-error').style.display = 'block'; btn.innerText = "Masuk Sistem"; } 
+            else { document.getElementById('admin-name').innerText = data.nama_lengkap; document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard-screen').style.display = 'flex'; inisialisasiPeta(); }
+        }
+
+        function inisialisasiPeta() {
+            map = L.map('map', { zoomControl: false }).setView([-7.3692565, 112.6768411], 14);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution: '© Google Maps' }).addTo(map);
+            routeLine = L.polyline([], {color: '#10B981', weight: 6, opacity: 0.7}).addTo(map);
+            layerToko = L.layerGroup().addTo(map); layerLive = L.layerGroup().addTo(map);
+            tarikDataSupabase(); sinkronisasiBerkala = setInterval(tarikDataSupabase, 5000);
+        }
+
+        const ikonToko = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+        const ikonLive = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+
+        function terbangKeLokasi(lat, lng) { map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 }); }
+        function ubahMenu(menu) { menuAktif = menu; document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active')); document.getElementById(`menu-${menu}`).classList.add('active'); renderPanelKiri(); }
+        function ubahRentangStatistik(rentang) { rentangStatistik = rentang; renderPanelKiri(); }
+
+        async function tarikDataSupabase() {
+            // MENGGUNAKAN PENGURUTAN 'id' AGAR TIDAK ERROR JIKA KOLOM 'created_at' TIDAK ADA
+            const resToko = await db.from('laporan_kunjungan').select('*').order('id', { ascending: false });
+            
+            if (resToko.data) {
+                dataLaporan = resToko.data;
+                layerToko.clearLayers();
+                dataLaporan.forEach(toko => {
+                    if (toko.latitude_checkin && toko.longitude_checkin) {
+                        const profil = getProfilSales(toko.nama_sales);
+                        const fotoMarkerToko = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover;">` : `<div style="padding:10px; background:#F3F4F6; color:#9CA3AF; font-size:12px; font-style:italic;">Tanpa Foto</div>`;
+                        const idCardHTML = `<div style="font-family: 'Poppins'; width: 250px; text-align: center; border: 2px solid #3B82F6; border-radius:12px; overflow:hidden; background:white;">
+                            <div style="background: #3B82F6; color: white; padding: 10px; font-weight: 900; font-size: 14px;">👤 ${profil.nama}</div>
+                            ${fotoMarkerToko}
+                            <div style="padding: 15px; text-align:left;">
+                                <b style="font-size: 15px; color: #111827;">🏪 ${toko.nama_toko_klien}</b>
+                                <div style="font-size:11px; color:#6B7280; margin-bottom:8px;">📍 ${toko.kecamatan || '-'} | 👤 ${toko.nama_pemilik || '-'}</div>
+                                <div style="font-size: 11.5px; color: #374151; background:#F9FAFB; padding:10px; border-radius:8px; line-height: 1.5;">
+                                    <b style="color:#059669;">💡 Insight:</b> ${toko.insight || '-'}<br>
+                                    <b style="color:#059669;">🛒 Order:</b> ${toko.order_barang || '-'}
+                                </div>
+                            </div></div>`;
+                        L.marker([toko.latitude_checkin, toko.longitude_checkin], {icon: ikonToko})
+                         .bindPopup(idCardHTML).addTo(layerToko);
+                    }
+                });
+            }
+
+            // TARIK DATA RUTE (MENGHINDARI ERROR JIKA recorded_at TIDAK ADA)
+            const resRute = await db.from('location_breadcrumbs').select('*');
+            if (resRute.data && resRute.data.length > 0) {
+                // Urutkan manual berdasarkan ID agar rute garisnya rapi
+                const ruteUrut = resRute.data.sort((a, b) => a.id - b.id);
+                const latlngs = ruteUrut.map(t => [t.latitude, t.longitude]);
+                routeLine.setLatLngs(latlngs);
+                
+                layerLive.clearLayers();
+                dataSalesTerakhir = {}; 
+                
+                ruteUrut.forEach(titik => { if (titik.nama_sales) dataSalesTerakhir[titik.nama_sales] = titik; });
+
+                Object.values(dataSalesTerakhir).forEach(sales => {
+                    const profil = getProfilSales(sales.nama_sales);
+                    let historyHTML = '';
+                    let laporanSalesIni = dataLaporan.filter(l => l.nama_sales === sales.nama_sales);
+                    
+                    if (laporanSalesIni.length > 0) {
+                        laporanSalesIni.forEach(lap => {
+                            let fotoThumb = lap.foto_url ? `<img src="${lap.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:8px; margin-bottom:8px; border: 1px solid #E5E7EB;">` : '';
+                            historyHTML += `
+                                <div style="border-left: 3px solid #10B981; padding-left: 15px; margin-bottom: 25px; position: relative;">
+                                    <div style="position: absolute; left: -7.5px; top: 0; width: 12px; height: 12px; background: #10B981; border-radius: 50%; border: 2px solid white;"></div>
+                                    <b style="font-size: 14px; color: #111827; display: block; margin-bottom: 2px;">🏪 ${lap.nama_toko_klien}</b>
+                                    <span style="font-size:11px; color:#6B7280; display:block;">👤 Kios: ${lap.nama_pemilik || '-'} | 📍 Kec: ${lap.kecamatan || '-'}</span>
+                                    ${fotoThumb}
+                                    <div style="background: #F3F4F6; padding: 10px; border-radius: 8px; font-size: 11.5px; color: #374151; line-height: 1.5;">
+                                        <b style="color:#059669;">💡 Insight:</b> ${lap.insight || '-'}<br>
+                                        <b style="color:#059669;">📦 Stok:</b> ${lap.stok_pupuk || '-'}<br>
+                                        <b style="color:#059669;">🛒 Order:</b> ${lap.order_barang || '-'}<br>
+                                        <b style="color:#EF4444;">❌ Alasan:</b> ${lap.alasan_tidak_order || '-'}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        historyHTML = `<div style="font-size: 12px; color: #9CA3AF; text-align: center; padding: 20px; font-style: italic;">Belum ada kunjungan toko hari ini.</div>`;
+                    }
+
+                    const profilePopupHTML = `
+                        <div style="width: 340px; font-family: 'Poppins', sans-serif;">
+                            <div style="display: flex; align-items: center; gap: 15px; padding: 20px; background: url('https://raw.githubusercontent.com/fauzanbunz/jagosubur/main/Lanskap%20Sawah%20Jago%20Subur%20saat%20Fajar.png') center/cover; position: relative;">
+                                <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(6, 78, 59, 0.85);"></div>
+                                <img src="${profil.foto}" style="border-radius: 50%; border: 3px solid white; width: 75px; height: 75px; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative; z-index: 1;">
+                                <div style="position: relative; z-index: 1; color: white;">
+                                    <div style="font-weight: 900; font-size: 22px; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${profil.nama}</div>
+                                    <div style="font-size: 13px; font-weight: 600; color: #34D399; margin-top: 3px;">💼 Sales Executive</div>
+                                </div>
+                            </div>
+                            <div class="history-scroll" style="padding: 20px; background: white; max-height: 300px; overflow-y: auto;">
+                                <div style="font-size: 12px; font-weight: 800; color: #6B7280; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📍 Histori Kunjungan</div>
+                                ${historyHTML}
+                            </div>
+                        </div>
+                    `;
+
+                    L.marker([sales.latitude, sales.longitude], {icon: ikonLive})
+                     .bindPopup(profilePopupHTML, { className: 'profile-popup-custom', minWidth: 340, offset: [185, 20] })
+                     .addTo(layerLive);
+                });
+            }
+            renderPanelKiri();
+        }
+
+        function renderPanelKiri() {
+            const panel = document.getElementById('panel-content');
+            let html = '';
+
+            if (menuAktif === 'track') {
+                html += `<div class="content-title">📡 Tim di Lapangan <span style="background:#10B981;color:white;padding:2px 8px;border-radius:10px;font-size:12px;">${Object.keys(dataSalesTerakhir).length} Aktif</span></div>`;
+                Object.values(dataSalesTerakhir).forEach(sales => {
+                    const profil = getProfilSales(sales.nama_sales);
+                    html += `
+                    <div class="data-card" onclick="terbangKeLokasi(${sales.latitude}, ${sales.longitude})">
+                        <div class="data-title">
+                            <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
+                            ${profil.nama} 
+                            <button class="btn-edit-profil" style="margin-left: auto;" onclick="bukaModalProfil('${sales.nama_sales}', event)">⚙️ Edit</button>
+                        </div>
+                        <div class="data-subtitle">📍 Klik untuk melacak titik GPS</div>
+                    </div>`;
+                });
+                if(Object.keys(dataSalesTerakhir).length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Tidak ada pergerakan saat ini.</div>`;
+            } 
+            else if (menuAktif === 'report') {
+                html += `<div class="content-title">📑 Laporan Terbaru</div>`;
+                dataLaporan.forEach(toko => {
+                    const profil = getProfilSales(toko.nama_sales);
+                    let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
+                    html += `
+                    <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: #3B82F6;">
+                        <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
+                        <div class="data-subtitle">Oleh: <b>${profil.nama}</b></div>
+                        ${fotoThumbSidebar}
+                        <div class="data-desc">
+                            <b style="color:#059669;">Insight:</b> ${toko.insight || '-'}<br>
+                            <b style="color:#059669;">Order:</b> ${toko.order_barang || '-'}
+                        </div>
+                    </div>`;
+                });
+                if(dataLaporan.length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada laporan masuk.</div>`;
+            }
+            else if (menuAktif === 'stats') {
+                let jumlahKunjungan = 0;
+                const hariIni = new Date();
+                dataLaporan.forEach(lap => {
+                    // JARING PENGAMAN TANGGAL
+                    const tglData = lap.created_at || null;
+                    const tglLap = tglData ? new Date(tglData) : new Date(); // Jika tabel tidak ada waktu, anggap hari ini
+                    
+                    const bedaWaktu = Math.abs(hariIni - tglLap);
+                    const bedaHari = Math.ceil(bedaWaktu / (1000 * 60 * 60 * 24));
+                    if(rentangStatistik === 'harian' && bedaHari <= 1 && tglLap.getDate() === hariIni.getDate()) jumlahKunjungan++;
+                    if(rentangStatistik === 'mingguan' && bedaHari <= 7) jumlahKunjungan++;
+                    if(rentangStatistik === 'bulanan' && bedaHari <= 30) jumlahKunjungan++;
+                });
+
+                html += `
+                <div class="content-title">📊 Ringkasan Operasional</div>
+                <div class="stat-tabs">
+                    <div class="stat-tab ${rentangStatistik === 'harian' ? 'active' : ''}" onclick="ubahRentangStatistik('harian')">Hari Ini</div>
+                    <div class="stat-tab ${rentangStatistik === 'mingguan' ? 'active' : ''}" onclick="ubahRentangStatistik('mingguan')">7 Hari</div>
+                    <div class="stat-tab ${rentangStatistik === 'bulanan' ? 'active' : ''}" onclick="ubahRentangStatistik('bulanan')">30 Hari</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; text-align: center; box-shadow: 0 5px 15px rgba(16,185,129,0.3);">
+                    <div style="font-size: 35px; font-weight: 900;">${jumlahKunjungan}</div>
+                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Kunjungan Toko (${rentangStatistik})</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(59,130,246,0.3);">
+                    <div style="font-size: 35px; font-weight: 900;">${Object.keys(dataSalesTerakhir).length}</div>
+                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Aktif Bergerak (Live)</div>
+                </div>`;
+            }
+            panel.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
