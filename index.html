@@ -7,6 +7,8 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- [BARU] Import Library Chart.js untuk Grafik Visual -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         * { box-sizing: border-box; font-family: 'Poppins', sans-serif; margin: 0; padding: 0; }
@@ -23,29 +25,27 @@
         .login-card h2 { color: #10B981; font-weight: 900; font-size: 32px; margin-bottom: 5px; }
         .login-card p { color: #6B7280; margin-bottom: 30px; font-size: 14px; }
         .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group input { width: 100%; padding: 15px; border: 2px solid #E5E7EB; border-radius: 12px; font-size: 15px; outline: none; transition: all 0.3s; background: #F9FAFB; }
-        .input-group input:focus { border-color: #10B981; background: #fff; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
-        .btn-login { width: 100%; background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 15px; border: none; border-radius: 12px; font-size: 18px; font-weight: 800; cursor: pointer; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s; }
+        .input-group input, .input-group textarea { width: 100%; padding: 15px; border: 2px solid #E5E7EB; border-radius: 12px; font-size: 14px; outline: none; transition: all 0.3s; background: #F9FAFB; font-family: 'Poppins'; }
+        .input-group input:focus, .input-group textarea:focus { border-color: #10B981; background: #fff; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+        .btn-login { width: 100%; background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 15px; border: none; border-radius: 12px; font-size: 18px; font-weight: 800; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; }
         .btn-login:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4); }
         #login-error { color: #EF4444; font-size: 13px; margin-top: 15px; display: none; font-weight: 600; }
 
         /* --- DASHBOARD UTAMA --- */
         #dashboard-screen { display: none; width: 100%; height: 100%; display: flex; padding: 20px; gap: 20px; }
-        
         .sidebar { width: 420px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); border-radius: 25px; border: 1px solid rgba(255,255,255,0.5); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
         .sidebar-header { padding: 25px 20px 15px; text-align: center; }
         .sidebar-header img { height: 60px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); }
         .sidebar-header h1 { font-size: 26px; font-weight: 900; color: #064E3B; margin-top: 5px; line-height: 1.2;}
         .sidebar-header p { font-size: 13px; color: #059669; font-weight: 600; }
         
-        /* --- FITUR BARU: UTILITY BAR (KALENDER & EXPORT) --- */
         .utility-bar { display: flex; gap: 10px; padding: 0 15px 15px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .date-picker { flex: 1; padding: 10px; border: 2px solid #E5E7EB; border-radius: 12px; outline: none; font-family: 'Poppins'; font-weight: 600; color: #374151; background: white; }
         .btn-export { background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; border: none; padding: 10px 15px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px;}
         .btn-export:hover { transform: translateY(-2px); box-shadow: 0 5px 10px rgba(59, 130, 246, 0.3); }
 
         .menu-container { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.5); }
-        .btn-menu { background: white; border: 2px solid #10B981; color: #10B981; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .btn-menu { background: white; border: 2px solid #10B981; color: #10B981; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .btn-menu:hover, .btn-menu.active { background: linear-gradient(135deg, #10B981, #059669); color: white; transform: scale(1.05) translateY(-3px); box-shadow: 0 8px 15px rgba(16, 185, 129, 0.3); border-color: transparent; }
         .btn-logout-small { grid-column: span 2; background: #FEE2E2; color: #EF4444; border: none; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; }
         .btn-logout-small:hover { background: #FECACA; transform: scale(1.02); }
@@ -62,10 +62,10 @@
         .btn-edit-profil { background: #E5E7EB; border: none; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-edit-profil:hover { background: #10B981; color: white; }
 
-        /* --- MODAL EDIT PROFIL --- */
-        #modal-profil { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 99999; justify-content: center; align-items: center; }
-        .modal-box { background: white; padding: 30px; border-radius: 20px; width: 350px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
-        .modal-box h3 { color: #064E3B; font-weight: 900; margin-bottom: 20px; }
+        /* --- SEMUA MODAL POPUP --- */
+        .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 99999; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 30px; border-radius: 20px; width: 380px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; max-height: 90vh; overflow-y: auto;}
+        .modal-box h3 { color: #064E3B; font-weight: 900; margin-bottom: 10px; }
         .modal-btn-group { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn-group button { flex: 1; padding: 12px; border-radius: 10px; font-weight: 800; cursor: pointer; border: none; }
         .btn-save { background: #10B981; color: white; }
@@ -77,6 +77,7 @@
         .stat-tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #E5E7EB; padding: 5px; border-radius: 12px; }
         .stat-tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 800; color: #6B7280; cursor: pointer; border-radius: 8px; transition: 0.3s; }
         .stat-tab.active { background: white; color: #10B981; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .chart-container { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-top: 15px; }
 
         .map-wrapper { flex: 1; border-radius: 25px; overflow: hidden; border: 5px solid rgba(255, 255, 255, 0.6); box-shadow: 0 15px 35px rgba(0,0,0,0.3); position: relative; background: white; }
         #map { width: 100%; height: 100%; z-index: 1; }
@@ -86,20 +87,48 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 10px; }
-
         .profile-popup-custom .leaflet-popup-content-wrapper { padding: 0 !important; border-radius: 20px; overflow: hidden; border: 3px solid #10B981; box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important; }
         .profile-popup-custom .leaflet-popup-content { margin: 0 !important; width: 340px !important; }
         .profile-popup-custom .leaflet-popup-tip-container { display: none !important; }
         .history-scroll::-webkit-scrollbar { width: 4px; }
         .history-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
-        
-        .leaflet-popup-content-wrapper { padding: 0 !important; overflow: hidden; border-radius: 15px;}
-        .leaflet-popup-content { margin: 0 !important; }
     </style>
 </head>
 <body>
 
-    <div id="modal-profil">
+    <!-- [BARU] MODAL EDIT DATA LAPORAN (MANAJEMEN DATA) -->
+    <div id="modal-edit-laporan" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Edit Laporan Kunjungan</h3>
+            <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Perubahan akan disinkronisasi ke Database Supabase.</p>
+            <input type="hidden" id="edit-lap-id">
+            
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">💡 Insight</label>
+                <textarea id="edit-lap-insight" rows="2"></textarea>
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">📦 Stok Pupuk</label>
+                <textarea id="edit-lap-stok" rows="2"></textarea>
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">🛒 Order Barang</label>
+                <textarea id="edit-lap-order" rows="2"></textarea>
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">❌ Alasan Tidak Order</label>
+                <textarea id="edit-lap-alasan" rows="2"></textarea>
+            </div>
+
+            <div class="modal-btn-group">
+                <button class="btn-cancel" onclick="tutupModalEditLaporan()">Batal</button>
+                <button class="btn-save" id="btn-simpan-lap" onclick="simpanEditLaporan()">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT PROFIL FOTO LOKAL -->
+    <div id="modal-profil" class="modal-overlay">
         <div class="modal-box">
             <h3>Pengaturan Profil Sales</h3>
             <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Perubahan ini hanya tampil di Dasbor Web ini.</p>
@@ -144,7 +173,6 @@
                 <p>Welcome, <span id="admin-name">Bos</span></p>
             </div>
 
-            <!-- FITUR BARU: Filter Kalender & Export CSV -->
             <div class="utility-bar">
                 <input type="date" id="filter-tanggal" class="date-picker" onchange="ubahTanggal()">
                 <button class="btn-export" onclick="exportKeCSV()">📥 CSV Excel</button>
@@ -179,10 +207,11 @@
         let map, routeLine, layerToko, layerLive, sinkronisasiBerkala;
         let dataSalesTerakhir = {}; 
         let dataLaporan = []; 
+        let dataLaporanMentah = []; // Simpan semua data dari DB tanpa filter
         let menuAktif = 'track';
         let rentangStatistik = 'harian'; 
+        let myChart = null; // Variabel Grafik Chart.js
 
-        // Fungsi Format Tanggal (YYYY-MM-DD)
         function formatTanggal(dateStr) {
             const d = dateStr ? new Date(dateStr) : new Date();
             let month = '' + (d.getMonth() + 1);
@@ -192,14 +221,12 @@
             return [d.getFullYear(), month, day].join('-');
         }
 
-        // Setel kalender ke hari ini saat pertama kali dibuka
         let tanggalAktif = formatTanggal();
         document.getElementById('filter-tanggal').value = tanggalAktif;
 
-        // Pemicu saat Kalender diubah
         function ubahTanggal() {
             tanggalAktif = document.getElementById('filter-tanggal').value;
-            tarikDataSupabase(); // Langsung perbarui peta & data
+            tarikDataSupabase(); 
         }
 
         let profilLokal = JSON.parse(localStorage.getItem('jago_subur_profil')) || {};
@@ -213,6 +240,58 @@
             }
             return { nama: namaAsli, foto: `https://ui-avatars.com/api/?name=${namaAsli}&background=10B981&color=fff&size=75&bold=true` };
         }
+
+        // --- SISTEM CRUD (MANAJEMEN DATA EDIT & HAPUS) ---
+        function bukaModalEditLaporan(id, event) {
+            event.stopPropagation(); // Mencegah Peta Nge-zoom saat klik tombol Edit
+            const lap = dataLaporan.find(l => l.id === id);
+            if(!lap) return;
+            
+            document.getElementById('edit-lap-id').value = id;
+            document.getElementById('edit-lap-insight').value = lap.insight || '';
+            document.getElementById('edit-lap-stok').value = lap.stok_pupuk || '';
+            document.getElementById('edit-lap-order').value = lap.order_barang || '';
+            document.getElementById('edit-lap-alasan').value = lap.alasan_tidak_order || '';
+            
+            document.getElementById('modal-edit-laporan').style.display = 'flex';
+        }
+
+        function tutupModalEditLaporan() {
+            document.getElementById('modal-edit-laporan').style.display = 'none';
+        }
+
+        async function simpanEditLaporan() {
+            const btn = document.getElementById('btn-simpan-lap');
+            const id = document.getElementById('edit-lap-id').value;
+            const insight = document.getElementById('edit-lap-insight').value;
+            const stok = document.getElementById('edit-lap-stok').value;
+            const order = document.getElementById('edit-lap-order').value;
+            const alasan = document.getElementById('edit-lap-alasan').value;
+            
+            btn.innerText = "Menyimpan...";
+            const { error } = await db.from('laporan_kunjungan').update({
+                insight: insight, stok_pupuk: stok, order_barang: order, alasan_tidak_order: alasan
+            }).eq('id', id);
+
+            btn.innerText = "Simpan";
+            if(error) {
+                alert("Gagal merubah data: " + error.message);
+            } else {
+                tutupModalEditLaporan();
+                tarikDataSupabase(); // Langsung perbarui tabel dan peta
+            }
+        }
+
+        async function hapusLaporan(id, event) {
+            event.stopPropagation();
+            const konfirmasi = confirm("APAKAH BOS YAKIN?\nLaporan ini akan dihapus permanen dari sistem dan tidak bisa dikembalikan.");
+            if(konfirmasi) {
+                const { error } = await db.from('laporan_kunjungan').delete().eq('id', id);
+                if(error) alert("Gagal menghapus data: " + error.message);
+                else tarikDataSupabase();
+            }
+        }
+        // --- BATAS SISTEM CRUD ---
 
         document.getElementById('edit-file-foto').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -286,53 +365,33 @@
         const ikonLive = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
 
         function terbangKeLokasi(lat, lng) { map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 }); }
-        function ubahMenu(menu) { menuAktif = menu; document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active')); document.getElementById(`menu-${menu}`).classList.add('active'); renderPanelKiri(); }
+        
+        function ubahMenu(menu) { 
+            menuAktif = menu; 
+            document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active')); 
+            document.getElementById(`menu-${menu}`).classList.add('active'); 
+            renderPanelKiri(); 
+        }
         function ubahRentangStatistik(rentang) { rentangStatistik = rentang; renderPanelKiri(); }
 
-        // --- FITUR BARU: EXPORT DATA KE CSV/EXCEL ---
         function exportKeCSV() {
-            if(dataLaporan.length === 0) {
-                alert("Data kunjungan pada tanggal " + tanggalAktif + " masih kosong!");
-                return;
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,";
-            // Header Excel
-            csvContent += "Waktu Kunjungan,Nama Sales,Kecamatan,Nama Kios,Nama Pemilik,No HP,Insight,Stok Pupuk,Order,Alasan Tidak Order,Link Foto\n";
-
+            if(dataLaporan.length === 0) { alert("Data kosong di tanggal ini!"); return; }
+            let csvContent = "data:text/csv;charset=utf-8,Waktu Kunjungan,Nama Sales,Kecamatan,Nama Kios,Nama Pemilik,No HP,Insight,Stok Pupuk,Order,Alasan Tidak Order,Link Foto\n";
             dataLaporan.forEach(row => {
                 let tanggal = row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '-';
-                let sales = row.nama_sales || '-';
-                let kec = row.kecamatan || '-';
-                let kios = row.nama_toko_klien || '-';
-                let pemilik = row.nama_pemilik || '-';
-                let nohp = row.no_hp || '-';
-                // Membersihkan koma & enter agar format Excel tidak rusak
-                let insight = row.insight ? row.insight.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
-                let stok = row.stok_pupuk ? row.stok_pupuk.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
-                let order = row.order_barang ? row.order_barang.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
-                let alasan = row.alasan_tidak_order ? row.alasan_tidak_order.replace(/"/g, '""').replace(/\n/g, ' ') : '-';
-                let foto = row.foto_url || '-';
-
-                let baris = `"${tanggal}","${sales}","${kec}","${kios}","${pemilik}","${nohp}","${insight}","${stok}","${order}","${alasan}","${foto}"`;
+                let baris = `"${tanggal}","${row.nama_sales||'-'}","${row.kecamatan||'-'}","${row.nama_toko_klien||'-'}","${row.nama_pemilik||'-'}","${row.no_hp||'-'}","${(row.insight||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.stok_pupuk||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.order_barang||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.alasan_tidak_order||'').replace(/"/g,'""').replace(/\n/g,' ')}","${row.foto_url||'-'}"`;
                 csvContent += baris + "\n";
             });
-
-            // Eksekusi Download
-            const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
+            link.setAttribute("href", encodeURI(csvContent));
             link.setAttribute("download", `Laporan_JagoSubur_${tanggalAktif}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         async function tarikDataSupabase() {
             const resToko = await db.from('laporan_kunjungan').select('*').order('id', { ascending: false });
-            
             if (resToko.data) {
-                // FILTER DATA BERDASARKAN TANGGAL DI KALENDER
+                dataLaporanMentah = resToko.data;
                 dataLaporan = resToko.data.filter(lap => {
                     const tglData = lap.created_at ? formatTanggal(lap.created_at) : formatTanggal();
                     return tglData === tanggalAktif;
@@ -362,26 +421,21 @@
 
             const resRute = await db.from('location_breadcrumbs').select('*');
             if (resRute.data && resRute.data.length > 0) {
-                // FILTER RUTE BERDASARKAN TANGGAL DI KALENDER
                 const ruteTersaring = resRute.data.filter(rute => {
                     const tglData = rute.recorded_at ? formatTanggal(rute.recorded_at) : formatTanggal();
                     return tglData === tanggalAktif;
                 });
-
                 const ruteUrut = ruteTersaring.sort((a, b) => a.id - b.id);
-                const latlngs = ruteUrut.map(t => [t.latitude, t.longitude]);
+                routeLine.setLatLngs(ruteUrut.map(t => [t.latitude, t.longitude]));
                 
-                routeLine.setLatLngs(latlngs);
                 layerLive.clearLayers();
                 dataSalesTerakhir = {}; 
-                
                 ruteUrut.forEach(titik => { if (titik.nama_sales) dataSalesTerakhir[titik.nama_sales] = titik; });
 
                 Object.values(dataSalesTerakhir).forEach(sales => {
                     const profil = getProfilSales(sales.nama_sales);
                     let historyHTML = '';
                     let laporanSalesIni = dataLaporan.filter(l => l.nama_sales === sales.nama_sales);
-                    
                     if (laporanSalesIni.length > 0) {
                         laporanSalesIni.forEach(lap => {
                             let fotoThumb = lap.foto_url ? `<img src="${lap.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:8px; margin-bottom:8px; border: 1px solid #E5E7EB;">` : '';
@@ -389,20 +443,15 @@
                                 <div style="border-left: 3px solid #10B981; padding-left: 15px; margin-bottom: 25px; position: relative;">
                                     <div style="position: absolute; left: -7.5px; top: 0; width: 12px; height: 12px; background: #10B981; border-radius: 50%; border: 2px solid white;"></div>
                                     <b style="font-size: 14px; color: #111827; display: block; margin-bottom: 2px;">🏪 ${lap.nama_toko_klien}</b>
-                                    <span style="font-size:11px; color:#6B7280; display:block;">👤 Kios: ${lap.nama_pemilik || '-'} | 📍 Kec: ${lap.kecamatan || '-'}</span>
+                                    <span style="font-size:11px; color:#6B7280; display:block;">👤 Kios: ${lap.nama_pemilik || '-'}</span>
                                     ${fotoThumb}
                                     <div style="background: #F3F4F6; padding: 10px; border-radius: 8px; font-size: 11.5px; color: #374151; line-height: 1.5;">
                                         <b style="color:#059669;">💡 Insight:</b> ${lap.insight || '-'}<br>
-                                        <b style="color:#059669;">📦 Stok:</b> ${lap.stok_pupuk || '-'}<br>
-                                        <b style="color:#059669;">🛒 Order:</b> ${lap.order_barang || '-'}<br>
-                                        <b style="color:#EF4444;">❌ Alasan:</b> ${lap.alasan_tidak_order || '-'}
+                                        <b style="color:#059669;">🛒 Order:</b> ${lap.order_barang || '-'}
                                     </div>
-                                </div>
-                            `;
+                                </div>`;
                         });
-                    } else {
-                        historyHTML = `<div style="font-size: 12px; color: #9CA3AF; text-align: center; padding: 20px; font-style: italic;">Belum ada kunjungan toko pada tanggal ini.</div>`;
-                    }
+                    } else { historyHTML = `<div style="font-size: 12px; color: #9CA3AF; text-align: center; padding: 20px; font-style: italic;">Belum ada kunjungan toko pada tanggal ini.</div>`; }
 
                     const profilePopupHTML = `
                         <div style="width: 340px; font-family: 'Poppins', sans-serif;">
@@ -411,22 +460,70 @@
                                 <img src="${profil.foto}" style="border-radius: 50%; border: 3px solid white; width: 75px; height: 75px; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative; z-index: 1;">
                                 <div style="position: relative; z-index: 1; color: white;">
                                     <div style="font-weight: 900; font-size: 22px; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${profil.nama}</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #34D399; margin-top: 3px;">💼 Sales Executive</div>
                                 </div>
                             </div>
                             <div class="history-scroll" style="padding: 20px; background: white; max-height: 300px; overflow-y: auto;">
                                 <div style="font-size: 12px; font-weight: 800; color: #6B7280; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📍 Histori Kunjungan</div>
                                 ${historyHTML}
                             </div>
-                        </div>
-                    `;
-
-                    L.marker([sales.latitude, sales.longitude], {icon: ikonLive})
-                     .bindPopup(profilePopupHTML, { className: 'profile-popup-custom', minWidth: 340, offset: [185, 20] })
-                     .addTo(layerLive);
+                        </div>`;
+                    L.marker([sales.latitude, sales.longitude], {icon: ikonLive}).bindPopup(profilePopupHTML, { className: 'profile-popup-custom', minWidth: 340, offset: [185, 20] }).addTo(layerLive);
                 });
             }
             renderPanelKiri();
+        }
+
+        // FUNGSI UNTUK MERENDER GRAFIK CHART.JS
+        function renderGrafik() {
+            if (menuAktif !== 'stats') return;
+            
+            const ctx = document.getElementById('grafikPerforma');
+            if (!ctx) return;
+
+            // Hitung data untuk grafik berdasarkan tab waktu yang dipilih (Harian, 7 Hari, 30 Hari)
+            let jumlahKunjunganPerSales = {};
+            const hariIni = new Date();
+            
+            dataLaporanMentah.forEach(lap => {
+                const tglData = lap.created_at || null;
+                const tglLap = tglData ? new Date(tglData) : new Date(); 
+                const bedaWaktu = Math.abs(hariIni - tglLap);
+                const bedaHari = Math.ceil(bedaWaktu / (1000 * 60 * 60 * 24));
+                
+                let masukHitungan = false;
+                if(rentangStatistik === 'harian' && bedaHari <= 1 && tglLap.getDate() === hariIni.getDate()) masukHitungan = true;
+                if(rentangStatistik === 'mingguan' && bedaHari <= 7) masukHitungan = true;
+                if(rentangStatistik === 'bulanan' && bedaHari <= 30) masukHitungan = true;
+
+                if (masukHitungan) {
+                    const nama = lap.nama_sales || 'Tidak Diketahui';
+                    jumlahKunjunganPerSales[nama] = (jumlahKunjunganPerSales[nama] || 0) + 1;
+                }
+            });
+
+            const labels = Object.keys(jumlahKunjunganPerSales);
+            const dataPoin = Object.values(jumlahKunjunganPerSales);
+
+            // Hancurkan grafik lama sebelum menggambar yang baru agar tidak bertumpuk
+            if (myChart) { myChart.destroy(); }
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Kunjungan Kios',
+                        data: dataPoin,
+                        backgroundColor: '#10B981',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
         }
 
         function renderPanelKiri() {
@@ -442,7 +539,7 @@
                         <div class="data-title">
                             <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
                             ${profil.nama} 
-                            <button class="btn-edit-profil" style="margin-left: auto;" onclick="bukaModalProfil('${sales.nama_sales}', event)">⚙️ Edit</button>
+                            <button class="btn-edit-profil" style="margin-left: auto;" onclick="bukaModalProfil('${sales.nama_sales}', event)">⚙️ Profil</button>
                         </div>
                         <div class="data-subtitle">📍 Klik untuk melacak titik GPS</div>
                     </div>`;
@@ -450,7 +547,7 @@
                 if(Object.keys(dataSalesTerakhir).length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Tidak ada pergerakan pada tanggal ini.</div>`;
             } 
             else if (menuAktif === 'report') {
-                html += `<div class="content-title">📑 Laporan Tanggal ${tanggalAktif}</div>`;
+                html += `<div class="content-title">📑 Laporan (Tanggal: ${tanggalAktif})</div>`;
                 dataLaporan.forEach(toko => {
                     const profil = getProfilSales(toko.nama_sales);
                     let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
@@ -463,25 +560,35 @@
                             <b style="color:#059669;">Insight:</b> ${toko.insight || '-'}<br>
                             <b style="color:#059669;">Order:</b> ${toko.order_barang || '-'}
                         </div>
+                        <!-- [BARU] TOMBOL MANAJEMEN DATA (EDIT & HAPUS) -->
+                        <div style="margin-top:12px; display:flex; gap:10px;">
+                            <button onclick="bukaModalEditLaporan(${toko.id}, event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
+                            <button onclick="hapusLaporan(${toko.id}, event)" style="flex:1; background:#EF4444; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">🗑️ Hapus</button>
+                        </div>
                     </div>`;
                 });
                 if(dataLaporan.length === 0) html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada laporan masuk.</div>`;
             }
             else if (menuAktif === 'stats') {
-                // Untuk menu statistik, kita gunakan SELURUH data dari server tanpa difilter tanggal aktif
-                // agar tab "Mingguan" & "Bulanan" tetap berfungsi.
                 html += `
-                <div class="content-title">📊 Ringkasan Operasional</div>
-                <div style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; text-align: center; box-shadow: 0 5px 15px rgba(16,185,129,0.3);">
-                    <div style="font-size: 35px; font-weight: 900;">${dataLaporan.length}</div>
-                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Kunjungan (Tgl ${tanggalAktif})</div>
+                <div class="content-title">📊 Ringkasan Performa Tim</div>
+                <div class="stat-tabs">
+                    <div class="stat-tab ${rentangStatistik === 'harian' ? 'active' : ''}" onclick="ubahRentangStatistik('harian')">Hari Ini</div>
+                    <div class="stat-tab ${rentangStatistik === 'mingguan' ? 'active' : ''}" onclick="ubahRentangStatistik('mingguan')">7 Hari</div>
+                    <div class="stat-tab ${rentangStatistik === 'bulanan' ? 'active' : ''}" onclick="ubahRentangStatistik('bulanan')">30 Hari</div>
                 </div>
-                <div style="background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(59,130,246,0.3);">
-                    <div style="font-size: 35px; font-weight: 900;">${Object.keys(dataSalesTerakhir).length}</div>
-                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Aktif (Tgl ${tanggalAktif})</div>
-                </div>`;
+                
+                <!-- [BARU] WADAH UNTUK GRAFIK CHART.JS -->
+                <div class="chart-container">
+                    <div style="font-size:12px; font-weight:800; color:#6B7280; text-align:center; margin-bottom:10px;">TOTAL KUNJUNGAN PER SALES</div>
+                    <canvas id="grafikPerforma"></canvas>
+                </div>
+                `;
             }
             panel.innerHTML = html;
+
+            // Merender grafik setelah HTML dimasukkan ke panel
+            if (menuAktif === 'stats') { setTimeout(renderGrafik, 100); }
         }
     </script>
 </body>
