@@ -34,7 +34,7 @@
         .btn-export:hover { transform: translateY(-2px); box-shadow: 0 5px 10px rgba(59, 130, 246, 0.3); }
 
         .menu-container { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.5); }
-        .btn-menu { background: white; border: 2px solid #3B82F6; color: #3B82F6; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .btn-menu { background: white; border: 2px solid #3B82F6; color: #3B82F6; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center;}
         .btn-menu:hover, .btn-menu.active { background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; transform: scale(1.05) translateY(-3px); box-shadow: 0 8px 15px rgba(59, 130, 246, 0.3); border-color: transparent; }
         .btn-logout-small { grid-column: span 2; background: #FEE2E2; color: #EF4444; border: none; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; }
         .btn-logout-small:hover { background: #FECACA; transform: scale(1.02); }
@@ -69,7 +69,9 @@
 
         .map-wrapper { flex: 1; border-radius: 25px; overflow: hidden; border: 5px solid rgba(255, 255, 255, 0.6); box-shadow: 0 15px 35px rgba(0,0,0,0.3); position: relative; background: white; }
         #map { width: 100%; height: 100%; z-index: 1; }
-        .live-indicator { position: absolute; top: 20px; right: 20px; z-index: 1000; background: rgba(59, 130, 246, 0.9); color: white; padding: 8px 20px; border-radius: 30px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: pulse 2s infinite; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(5px);}
+        .live-indicator { position: absolute; top: 20px; right: 20px; z-index: 1000; background: rgba(59, 130, 246, 0.9); color: white; padding: 8px 20px; border-radius: 30px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; backdrop-filter: blur(5px); cursor: pointer; transition: 0.3s;}
+        .live-indicator.active { animation: pulse 2s infinite; }
+        .live-indicator.history { background: rgba(245, 158, 11, 0.9); animation: none; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -84,6 +86,7 @@
 </head>
 <body>
 
+    <!-- Modals dan Login Screen (Tetap Sama) -->
     <div id="modal-edit-laporan" class="modal-overlay">
         <div class="modal-box">
             <h3>Edit Laporan Kunjungan</h3>
@@ -154,21 +157,28 @@
                 <h1>JS-App</h1>
                 <p>Welcome, <span id="admin-name">Bos</span></p>
             </div>
+            
             <div class="utility-bar">
                 <input type="date" id="filter-tanggal" class="date-picker" onchange="ubahTanggal()">
                 <button class="btn-export" onclick="exportKeCSV()">📥 CSV Excel</button>
             </div>
+            
             <div class="menu-container">
                 <button class="btn-menu active" id="menu-track" onclick="ubahMenu('track')"><span style="font-size: 20px;">📍</span> Sales Track</button>
+                <!-- Tombol Baru: History Map Peta Benang -->
+                <button class="btn-menu" id="menu-history" onclick="ubahMenu('history')"><span style="font-size: 20px;">🗺️</span> History Map</button>
+                
                 <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')"><span style="font-size: 20px;">📝</span> Laporan Tim</button>
-                <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')" style="grid-column: span 2;"><span style="font-size: 20px;">📊</span> Overview & Statistik</button>
+                <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')"><span style="font-size: 20px;">📊</span> Statistik</button>
                 <button class="btn-logout-small" onclick="location.reload()">Keluar (Logout)</button>
             </div>
+            
             <div class="content-area" id="panel-content"></div>
         </div>
         <div class="map-wrapper">
-            <div class="live-indicator">
-                <div style="width: 10px; height: 10px; background: white; border-radius: 50%;"></div> LIVE SYNC
+            <div id="map-indicator" class="live-indicator active">
+                <div style="width: 10px; height: 10px; background: white; border-radius: 50%;"></div> 
+                <span id="map-indicator-text">LIVE SYNC</span>
             </div>
             <div id="map"></div>
         </div>
@@ -182,8 +192,8 @@
         const supabaseKey = 'sb_publishable_syDLCuoKh9NKTRsfTRmpyQ_a3r5_GQG'; 
         const db = supabase.createClient(supabaseUrl, supabaseKey);
 
-        let map, layerToko, layerLive;
-        let routeLines = {}; // Menyimpan garis rute spesifik tiap sales
+        let map, layerToko, layerLive, layerHistoryLines;
+        let routeLines = {}; // Menyimpan garis rute spesifik tiap sales (Untuk Mode History)
         const warnaSalesList = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
         let warnaAssigned = {}; 
 
@@ -191,13 +201,13 @@
         let dataLaporan = []; 
         let dataLaporanMentah = []; 
         let listSemuaSales = [];
-        let menuAktif = 'track';
+        let menuAktif = 'track'; // track (Live), history (Peta Benang), report, stats
         let rentangStatistik = 'harian'; 
         let myChart = null; 
         let salesTerpilihUntukLaporan = null;
 
         function getWarnaSales(nama) {
-            if (!nama) return '#9CA3AF'; // Hindari null
+            if (!nama) return '#9CA3AF'; 
             if (!warnaAssigned[nama]) {
                 warnaAssigned[nama] = warnaSalesList[Object.keys(warnaAssigned).length % warnaSalesList.length];
             }
@@ -219,7 +229,14 @@
         function ubahTanggal() {
             tanggalAktif = document.getElementById('filter-tanggal').value;
             salesTerpilihUntukLaporan = null;
-            tarikDataSupabase(); 
+            
+            // Cek jika tanggal yang dipilih bukan hari ini, otomatis pindah ke mode history (agar user tidak bingung)
+            const hariIni = formatTanggal();
+            if (tanggalAktif !== hariIni && menuAktif === 'track') {
+                ubahMenu('history');
+            } else {
+                tarikDataSupabase(); 
+            }
         }
 
         let profilLokal = JSON.parse(localStorage.getItem('jago_subur_profil')) || {};
@@ -246,9 +263,7 @@
             document.getElementById('edit-lap-alasan').value = lap.alasan_tidak_order || '';
             document.getElementById('modal-edit-laporan').style.display = 'flex';
         }
-
         function tutupModalEditLaporan() { document.getElementById('modal-edit-laporan').style.display = 'none'; }
-
         async function simpanEditLaporan() {
             const btn = document.getElementById('btn-simpan-lap');
             const id = document.getElementById('edit-lap-id').value;
@@ -263,7 +278,6 @@
             if(error) alert("Gagal merubah data: " + error.message);
             else { tutupModalEditLaporan(); tarikDataSupabase(); }
         }
-
         async function hapusLaporan(id, event) {
             event.stopPropagation();
             if(confirm("APAKAH BOS YAKIN?\nLaporan ini akan dihapus permanen.")) {
@@ -311,7 +325,6 @@
             } else { document.getElementById('preview-foto').style.display = 'none'; }
             document.getElementById('modal-profil').style.display = 'flex';
         }
-
         function tutupModalProfil() { document.getElementById('modal-profil').style.display = 'none'; }
         function simpanProfilLokal() {
             const namaAsli = document.getElementById('edit-nama-asli').value;
@@ -338,10 +351,7 @@
                     document.getElementById('dashboard-screen').style.display = 'flex'; 
                     inisialisasiPeta(); 
                 }
-            } catch (err) {
-                console.error("Login Error: ", err);
-                btn.innerText = "Masuk Sistem";
-            }
+            } catch (err) { console.error(err); btn.innerText = "Masuk Sistem"; }
         }
 
         function inisialisasiPeta() {
@@ -351,10 +361,11 @@
             
             layerToko = L.layerGroup().addTo(map); 
             layerLive = L.layerGroup().addTo(map);
+            layerHistoryLines = L.layerGroup().addTo(map); // Layer khusus untuk benang history
             
             tarikDataSupabase(); 
             
-            // KONEKSI RADAR WEBSOCKET REALTIME
+            // WEBSOCKET REALTIME (Tetap berjalan di belakang layar untuk memperbarui titik live)
             db.channel('tracking-langsung')
               .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'location_breadcrumbs' }, payload => {
                   const titikBaru = payload.new;
@@ -364,20 +375,18 @@
                   if (tglData === tanggalAktif && titikBaru.nama_sales) {
                       dataSalesTerakhir[titikBaru.nama_sales] = titikBaru; 
                       
-                      // Masukkan GPS ke Jalur Warna Spesifik Milik Sales Tersebut
-                      if (routeLines[titikBaru.nama_sales]) {
-                          routeLines[titikBaru.nama_sales].addLatLng([titikBaru.latitude, titikBaru.longitude]);
-                      } else {
-                          routeLines[titikBaru.nama_sales] = L.polyline([[titikBaru.latitude, titikBaru.longitude]], {
-                              color: getWarnaSales(titikBaru.nama_sales), 
-                              weight: 4, 
-                              opacity: 0.6,
-                              dashArray: '8, 8' // Agar terlihat rapi dan clean
-                          }).addTo(map);
+                      // Render titik live baru
+                      if (menuAktif === 'track') {
+                          renderSemuaMarkerLive(); 
+                          renderPanelKiri(); 
                       }
-
-                      renderSemuaMarkerLive(); 
-                      renderPanelKiri(); 
+                      
+                      // Render garis rute tambahan jika sedang dalam mode history
+                      if (menuAktif === 'history') {
+                          if (routeLines[titikBaru.nama_sales]) {
+                              routeLines[titikBaru.nama_sales].addLatLng([titikBaru.latitude, titikBaru.longitude]);
+                          }
+                      }
                   }
               }).subscribe();
         }
@@ -391,6 +400,33 @@
             salesTerpilihUntukLaporan = null;
             document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active')); 
             document.getElementById(`menu-${menu}`).classList.add('active'); 
+            
+            const mapIndicator = document.getElementById('map-indicator');
+            const mapIndicatorText = document.getElementById('map-indicator-text');
+            
+            if (menu === 'history') {
+                mapIndicator.classList.remove('active');
+                mapIndicator.classList.add('history');
+                mapIndicatorText.innerText = "HISTORY MAP: " + tanggalAktif;
+                renderGarisHistory(); // Gambar benangnya
+            } else {
+                mapIndicator.classList.add('active');
+                mapIndicator.classList.remove('history');
+                mapIndicatorText.innerText = "LIVE SYNC";
+                layerHistoryLines.clearLayers(); // Hapus benangnya jika kembali ke Live
+            }
+
+            // Jika ubah menu dari History ke Track (Live), pastikan tanggal kembali ke hari ini
+            if (menu === 'track') {
+                const hariIni = formatTanggal();
+                if(tanggalAktif !== hariIni) {
+                    tanggalAktif = hariIni;
+                    document.getElementById('filter-tanggal').value = hariIni;
+                    tarikDataSupabase(); // Tarik ulang untuk hari ini
+                    return; // Render dipanggil di tarikDataSupabase
+                }
+            }
+
             renderPanelKiri(); 
         }
 
@@ -398,7 +434,6 @@
             salesTerpilihUntukLaporan = nama;
             renderPanelKiri();
         }
-
         function ubahRentangStatistik(rentang) { rentangStatistik = rentang; renderPanelKiri(); }
 
         function exportKeCSV() {
@@ -463,11 +498,33 @@
             });
         }
 
+        // FUNGSI KHUSUS UNTUK MENGGAMBAR BENANG HISTORY
+        let dataRuteMentah = []; // Simpan semua rute harian yang ditarik untuk digambar jika menu history diklik
+        function renderGarisHistory() {
+            layerHistoryLines.clearLayers();
+            routeLines = {};
+            let ruteTerpisah = {};
+
+            dataRuteMentah.forEach(titik => { 
+                if (titik.nama_sales) {
+                    if(!ruteTerpisah[titik.nama_sales]) ruteTerpisah[titik.nama_sales] = [];
+                    ruteTerpisah[titik.nama_sales].push([titik.latitude, titik.longitude]);
+                }
+            });
+
+            for (let nama in ruteTerpisah) {
+                routeLines[nama] = L.polyline(ruteTerpisah[nama], {
+                    color: getWarnaSales(nama),
+                    weight: 4,
+                    opacity: 0.7,
+                    dashArray: '8, 8' // Garis putus-putus
+                }).addTo(layerHistoryLines);
+            }
+        }
+
         async function tarikDataSupabase() {
-            // Ambil semua daftar sales dari tabel
             const resSales = await db.from('sales_team').select('*').eq('role', 'sales');
             if (resSales.data) {
-                // Filter baris yang benar-benar memiliki nama_lengkap valid
                 listSemuaSales = resSales.data.filter(s => s.nama_lengkap && s.nama_lengkap.trim() !== '' && s.nama_lengkap.toLowerCase() !== 'null');
             }
 
@@ -510,38 +567,30 @@
                 const ruteTersaring = resRute.data.filter(rute => {
                     const waktuTerekam = rute.created_at || rute.recorded_at;
                     const tglData = waktuTerekam ? formatTanggal(waktuTerekam) : formatTanggal();
-                    return tglData === tanggalAktif;
+                    return tglData === tanggalAktif; // Filter berdasarkan tanggal yang dipilih
                 });
                 
-                const ruteUrut = ruteTersaring.sort((a, b) => a.id - b.id);
+                dataRuteMentah = ruteTersaring.sort((a, b) => a.id - b.id); // Simpan mentah untuk digambar jika menu history diklik
                 
-                // MENGHAPUS SEMUA RUTE LAMA AGAR TIDAK DOUBLE
-                for (let key in routeLines) {
-                    map.removeLayer(routeLines[key]);
-                }
-                routeLines = {};
-                let ruteTerpisah = {};
                 dataSalesTerakhir = {}; 
-
-                ruteUrut.forEach(titik => { 
+                dataRuteMentah.forEach(titik => { 
                     if (titik.nama_sales) {
                         dataSalesTerakhir[titik.nama_sales] = titik; 
-                        if(!ruteTerpisah[titik.nama_sales]) ruteTerpisah[titik.nama_sales] = [];
-                        ruteTerpisah[titik.nama_sales].push([titik.latitude, titik.longitude]);
                     }
                 });
 
-                // MENGGAMBAR RUTE PUTUS-PUTUS PER SALES (LEBIH RAPI)
-                for (let nama in ruteTerpisah) {
-                    routeLines[nama] = L.polyline(ruteTerpisah[nama], {
-                        color: getWarnaSales(nama),
-                        weight: 4,
-                        opacity: 0.6,
-                        dashArray: '8, 8'
-                    }).addTo(map);
-                }
-
                 renderSemuaMarkerLive();
+                
+                // Jika sedang di mode History, langsung gambar benangnya ulang untuk tanggal baru
+                if(menuAktif === 'history') {
+                    renderGarisHistory();
+                }
+            } else {
+                // Jika tidak ada data rute
+                dataRuteMentah = [];
+                dataSalesTerakhir = {};
+                layerLive.clearLayers();
+                layerHistoryLines.clearLayers();
             }
             renderPanelKiri();
         }
@@ -582,9 +631,10 @@
             const panel = document.getElementById('panel-content');
             let html = '';
 
-            if (menuAktif === 'track') {
+            if (menuAktif === 'track' || menuAktif === 'history') {
+                const judulTrack = menuAktif === 'track' ? '📡 Tim di Lapangan (Live)' : '🗺️ Jejak Perjalanan (History)';
                 let jmlAktif = Object.keys(dataSalesTerakhir).length;
-                html += `<div class="content-title">📡 Tim di Lapangan <span style="background:#3B82F6;color:white;padding:2px 8px;border-radius:10px;font-size:12px;">${jmlAktif} Aktif</span></div>`;
+                html += `<div class="content-title">${judulTrack} <span style="background:#3B82F6;color:white;padding:2px 8px;border-radius:10px;font-size:12px;">${jmlAktif} Data</span></div>`;
                 
                 listSemuaSales.forEach(sales => {
                     const profil = getProfilSales(sales.nama_lengkap);
@@ -598,10 +648,10 @@
                             <div class="data-title">
                                 <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
                                 ${profil.nama} 
-                                <span style="font-size:10px; background:${wColor}; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Aktif</span>
+                                <span style="font-size:10px; background:${wColor}; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Terdeteksi</span>
                                 <button class="btn-edit-profil" style="margin-left: auto; background:${wColor}; color:white;" onclick="bukaModalProfil('${sales.nama_lengkap}', event)">⚙️ Profil</button>
                             </div>
-                            <div class="data-subtitle">📍 Klik untuk melacak titik GPS</div>
+                            <div class="data-subtitle">📍 Klik untuk melihat titik lokasi data</div>
                         </div>`;
                     } else {
                         html += `
@@ -609,10 +659,10 @@
                             <div class="data-title">
                                 <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover; filter: grayscale(100%);">
                                 ${profil.nama} 
-                                <span style="font-size:10px; background:#9CA3AF; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Offline</span>
+                                <span style="font-size:10px; background:#9CA3AF; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Kosong</span>
                                 <button class="btn-edit-profil" style="margin-left: auto;" onclick="bukaModalProfil('${sales.nama_lengkap}', event)">⚙️ Profil</button>
                             </div>
-                            <div class="data-subtitle">Belum memulai shift pada tanggal ini</div>
+                            <div class="data-subtitle">Tidak ada pergerakan di tanggal ini</div>
                         </div>`;
                     }
                 });
@@ -624,13 +674,10 @@
                     if(listSemuaSales.length === 0) {
                         html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada data sales.</div>`;
                     } else {
-                        // Tampilkan SEMUA sales dari database
                         listSemuaSales.forEach(sales => {
                             const salesName = sales.nama_lengkap;
                             const profil = getProfilSales(salesName);
                             const wColor = getWarnaSales(salesName);
-                            
-                            // Hitung jumlah laporan hari ini untuk sales tersebut
                             const jumlahLap = dataLaporan.filter(l => l.nama_sales === salesName).length;
                             
                             html += `
@@ -657,7 +704,7 @@
                     const lapSales = dataLaporan.filter(l => l.nama_sales === salesTerpilihUntukLaporan);
                     
                     if (lapSales.length === 0) {
-                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko hari ini.</div>`;
+                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko.</div>`;
                     } else {
                         lapSales.forEach(toko => {
                             let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
