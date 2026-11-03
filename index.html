@@ -86,7 +86,7 @@
 </head>
 <body>
 
-    <!-- Modals dan Login Screen (Tetap Sama) -->
+    <!-- Modals dan Login Screen -->
     <div id="modal-edit-laporan" class="modal-overlay">
         <div class="modal-box">
             <h3>Edit Laporan Kunjungan</h3>
@@ -165,9 +165,7 @@
             
             <div class="menu-container">
                 <button class="btn-menu active" id="menu-track" onclick="ubahMenu('track')"><span style="font-size: 20px;">📍</span> Sales Track</button>
-                <!-- Tombol Baru: History Map Peta Benang -->
                 <button class="btn-menu" id="menu-history" onclick="ubahMenu('history')"><span style="font-size: 20px;">🗺️</span> History Map</button>
-                
                 <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')"><span style="font-size: 20px;">📝</span> Laporan Tim</button>
                 <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')"><span style="font-size: 20px;">📊</span> Statistik</button>
                 <button class="btn-logout-small" onclick="location.reload()">Keluar (Logout)</button>
@@ -193,7 +191,7 @@
         const db = supabase.createClient(supabaseUrl, supabaseKey);
 
         let map, layerToko, layerLive, layerHistoryLines;
-        let routeLines = {}; // Menyimpan garis rute spesifik tiap sales (Untuk Mode History)
+        let routeLines = {}; 
         const warnaSalesList = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
         let warnaAssigned = {}; 
 
@@ -201,10 +199,22 @@
         let dataLaporan = []; 
         let dataLaporanMentah = []; 
         let listSemuaSales = [];
-        let menuAktif = 'track'; // track (Live), history (Peta Benang), report, stats
+        let menuAktif = 'track'; 
         let rentangStatistik = 'harian'; 
         let myChart = null; 
         let salesTerpilihUntukLaporan = null;
+
+        // RUMUS HAVERSINE UNTUK MENGHITUNG JARAK (METER) ANTARA DUA KOORDINAT
+        function hitungJarak(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Radius bumi dalam meter
+            const p1 = lat1 * Math.PI/180;
+            const p2 = lat2 * Math.PI/180;
+            const dp = (lat2-lat1) * Math.PI/180;
+            const dl = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // Hasil dalam satuan meter
+        }
 
         function getWarnaSales(nama) {
             if (!nama) return '#9CA3AF'; 
@@ -230,7 +240,6 @@
             tanggalAktif = document.getElementById('filter-tanggal').value;
             salesTerpilihUntukLaporan = null;
             
-            // Cek jika tanggal yang dipilih bukan hari ini, otomatis pindah ke mode history (agar user tidak bingung)
             const hariIni = formatTanggal();
             if (tanggalAktif !== hariIni && menuAktif === 'track') {
                 ubahMenu('history');
@@ -361,11 +370,10 @@
             
             layerToko = L.layerGroup().addTo(map); 
             layerLive = L.layerGroup().addTo(map);
-            layerHistoryLines = L.layerGroup().addTo(map); // Layer khusus untuk benang history
+            layerHistoryLines = L.layerGroup().addTo(map); 
             
             tarikDataSupabase(); 
             
-            // WEBSOCKET REALTIME (Tetap berjalan di belakang layar untuk memperbarui titik live)
             db.channel('tracking-langsung')
               .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'location_breadcrumbs' }, payload => {
                   const titikBaru = payload.new;
@@ -375,17 +383,13 @@
                   if (tglData === tanggalAktif && titikBaru.nama_sales) {
                       dataSalesTerakhir[titikBaru.nama_sales] = titikBaru; 
                       
-                      // Render titik live baru
                       if (menuAktif === 'track') {
                           renderSemuaMarkerLive(); 
                           renderPanelKiri(); 
                       }
                       
-                      // Render garis rute tambahan jika sedang dalam mode history
-                      if (menuAktif === 'history') {
-                          if (routeLines[titikBaru.nama_sales]) {
-                              routeLines[titikBaru.nama_sales].addLatLng([titikBaru.latitude, titikBaru.longitude]);
-                          }
+                      if (menuAktif === 'history' && routeLines[titikBaru.nama_sales]) {
+                          routeLines[titikBaru.nama_sales].addLatLng([titikBaru.latitude, titikBaru.longitude]);
                       }
                   }
               }).subscribe();
@@ -408,25 +412,23 @@
                 mapIndicator.classList.remove('active');
                 mapIndicator.classList.add('history');
                 mapIndicatorText.innerText = "HISTORY MAP: " + tanggalAktif;
-                renderGarisHistory(); // Gambar benangnya
+                renderGarisHistory(); 
             } else {
                 mapIndicator.classList.add('active');
                 mapIndicator.classList.remove('history');
                 mapIndicatorText.innerText = "LIVE SYNC";
-                layerHistoryLines.clearLayers(); // Hapus benangnya jika kembali ke Live
+                layerHistoryLines.clearLayers(); 
             }
 
-            // Jika ubah menu dari History ke Track (Live), pastikan tanggal kembali ke hari ini
             if (menu === 'track') {
                 const hariIni = formatTanggal();
                 if(tanggalAktif !== hariIni) {
                     tanggalAktif = hariIni;
                     document.getElementById('filter-tanggal').value = hariIni;
-                    tarikDataSupabase(); // Tarik ulang untuk hari ini
-                    return; // Render dipanggil di tarikDataSupabase
+                    tarikDataSupabase(); 
+                    return; 
                 }
             }
-
             renderPanelKiri(); 
         }
 
@@ -456,7 +458,6 @@
                 const profil = getProfilSales(sales.nama_sales);
                 const wColor = getWarnaSales(sales.nama_sales);
                 
-                // Gunakan warna dinamis milik sales untuk icon live-nya
                 const htmlIconLive = `<div style="background-color: ${wColor}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`;
                 const customIkonLive = L.divIcon({ html: htmlIconLive, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
 
@@ -498,26 +499,49 @@
             });
         }
 
-        // FUNGSI KHUSUS UNTUK MENGGAMBAR BENANG HISTORY
-        let dataRuteMentah = []; // Simpan semua rute harian yang ditarik untuk digambar jika menu history diklik
+        // ALGORITMA PEMBERSIHAN GARIS RUTE (HAVERSINE DISTANCE FILTER)
+        let dataRuteMentah = []; 
         function renderGarisHistory() {
             layerHistoryLines.clearLayers();
             routeLines = {};
             let ruteTerpisah = {};
+            let titikTerakhir = {}; // Memori penyimpan koordinat sebelumnya untuk hitung jarak
 
             dataRuteMentah.forEach(titik => { 
-                if (titik.nama_sales) {
-                    if(!ruteTerpisah[titik.nama_sales]) ruteTerpisah[titik.nama_sales] = [];
-                    ruteTerpisah[titik.nama_sales].push([titik.latitude, titik.longitude]);
+                const nama = titik.nama_sales;
+                if (nama) {
+                    const lat = parseFloat(titik.latitude);
+                    const lon = parseFloat(titik.longitude);
+
+                    if(!ruteTerpisah[nama]) {
+                        ruteTerpisah[nama] = [];
+                        titikTerakhir[nama] = null;
+                    }
+
+                    if (titikTerakhir[nama]) {
+                        const jarak = hitungJarak(titikTerakhir[nama].lat, titikTerakhir[nama].lon, lat, lon);
+                        
+                        // FILTER: Abaikan titik jika jaraknya < 100 meter (Menghapus coretan/spiderweb saat diam di dalam toko)
+                        // FILTER: Abaikan titik jika jaraknya > 20.000 meter (Mencegah garis melintang kota akibat GPS HP Glitch/Error mendadak)
+                        if (jarak > 100 && jarak < 20000) {
+                            ruteTerpisah[nama].push([lat, lon]);
+                            titikTerakhir[nama] = {lat, lon}; // Perbarui memori dengan titik yang valid
+                        }
+                    } else {
+                        // Titik pertama selalu dimasukkan
+                        ruteTerpisah[nama].push([lat, lon]);
+                        titikTerakhir[nama] = {lat, lon};
+                    }
                 }
             });
 
+            // Ganti tipe garis dari dashed (putus-putus) menjadi garis utuh mulus (solid & round)
             for (let nama in ruteTerpisah) {
                 routeLines[nama] = L.polyline(ruteTerpisah[nama], {
                     color: getWarnaSales(nama),
                     weight: 4,
-                    opacity: 0.7,
-                    dashArray: '8, 8' // Garis putus-putus
+                    opacity: 0.8,
+                    lineJoin: 'round' // Bikin belokan garis lebih halus
                 }).addTo(layerHistoryLines);
             }
         }
@@ -567,10 +591,10 @@
                 const ruteTersaring = resRute.data.filter(rute => {
                     const waktuTerekam = rute.created_at || rute.recorded_at;
                     const tglData = waktuTerekam ? formatTanggal(waktuTerekam) : formatTanggal();
-                    return tglData === tanggalAktif; // Filter berdasarkan tanggal yang dipilih
+                    return tglData === tanggalAktif; 
                 });
                 
-                dataRuteMentah = ruteTersaring.sort((a, b) => a.id - b.id); // Simpan mentah untuk digambar jika menu history diklik
+                dataRuteMentah = ruteTersaring.sort((a, b) => a.id - b.id); 
                 
                 dataSalesTerakhir = {}; 
                 dataRuteMentah.forEach(titik => { 
@@ -581,12 +605,10 @@
 
                 renderSemuaMarkerLive();
                 
-                // Jika sedang di mode History, langsung gambar benangnya ulang untuk tanggal baru
                 if(menuAktif === 'history') {
                     renderGarisHistory();
                 }
             } else {
-                // Jika tidak ada data rute
                 dataRuteMentah = [];
                 dataSalesTerakhir = {};
                 layerLive.clearLayers();
