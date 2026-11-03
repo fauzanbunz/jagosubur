@@ -183,6 +183,7 @@
         const db = supabase.createClient(supabaseUrl, supabaseKey);
 
         let map, layerToko, layerLive;
+        let routeLines = {}; // Menyimpan garis rute spesifik tiap sales
         const warnaSalesList = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
         let warnaAssigned = {}; 
 
@@ -196,6 +197,7 @@
         let salesTerpilihUntukLaporan = null;
 
         function getWarnaSales(nama) {
+            if (!nama) return '#9CA3AF'; // Hindari null
             if (!warnaAssigned[nama]) {
                 warnaAssigned[nama] = warnaSalesList[Object.keys(warnaAssigned).length % warnaSalesList.length];
             }
@@ -352,7 +354,7 @@
             
             tarikDataSupabase(); 
             
-            // KONEKSI RADAR WEBSOCKET REALTIME (TANPA MENGGAMBAR GARIS RUTE)
+            // KONEKSI RADAR WEBSOCKET REALTIME
             db.channel('tracking-langsung')
               .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'location_breadcrumbs' }, payload => {
                   const titikBaru = payload.new;
@@ -362,7 +364,18 @@
                   if (tglData === tanggalAktif && titikBaru.nama_sales) {
                       dataSalesTerakhir[titikBaru.nama_sales] = titikBaru; 
                       
-                      // Cukup render ulang posisi live terbaru, tidak ada penarikan garis.
+                      // Masukkan GPS ke Jalur Warna Spesifik Milik Sales Tersebut
+                      if (routeLines[titikBaru.nama_sales]) {
+                          routeLines[titikBaru.nama_sales].addLatLng([titikBaru.latitude, titikBaru.longitude]);
+                      } else {
+                          routeLines[titikBaru.nama_sales] = L.polyline([[titikBaru.latitude, titikBaru.longitude]], {
+                              color: getWarnaSales(titikBaru.nama_sales), 
+                              weight: 4, 
+                              opacity: 0.6,
+                              dashArray: '8, 8' // Agar terlihat rapi dan clean
+                          }).addTo(map);
+                      }
+
                       renderSemuaMarkerLive(); 
                       renderPanelKiri(); 
                   }
@@ -451,8 +464,12 @@
         }
 
         async function tarikDataSupabase() {
+            // Ambil semua daftar sales dari tabel
             const resSales = await db.from('sales_team').select('*').eq('role', 'sales');
-            if (resSales.data) listSemuaSales = resSales.data;
+            if (resSales.data) {
+                // Filter baris yang benar-benar memiliki nama_lengkap valid
+                listSemuaSales = resSales.data.filter(s => s.nama_lengkap && s.nama_lengkap.trim() !== '' && s.nama_lengkap.toLowerCase() !== 'null');
+            }
 
             const resToko = await db.from('laporan_kunjungan').select('*').order('id', { ascending: false });
             if (resToko.data) {
@@ -498,13 +515,31 @@
                 
                 const ruteUrut = ruteTersaring.sort((a, b) => a.id - b.id);
                 
+                // MENGHAPUS SEMUA RUTE LAMA AGAR TIDAK DOUBLE
+                for (let key in routeLines) {
+                    map.removeLayer(routeLines[key]);
+                }
+                routeLines = {};
+                let ruteTerpisah = {};
                 dataSalesTerakhir = {}; 
-                // Cukup rekam posisi terakhir tiap sales tanpa menggambar poligon
+
                 ruteUrut.forEach(titik => { 
                     if (titik.nama_sales) {
                         dataSalesTerakhir[titik.nama_sales] = titik; 
+                        if(!ruteTerpisah[titik.nama_sales]) ruteTerpisah[titik.nama_sales] = [];
+                        ruteTerpisah[titik.nama_sales].push([titik.latitude, titik.longitude]);
                     }
                 });
+
+                // MENGGAMBAR RUTE PUTUS-PUTUS PER SALES (LEBIH RAPI)
+                for (let nama in ruteTerpisah) {
+                    routeLines[nama] = L.polyline(ruteTerpisah[nama], {
+                        color: getWarnaSales(nama),
+                        weight: 4,
+                        opacity: 0.6,
+                        dashArray: '8, 8'
+                    }).addTo(map);
+                }
 
                 renderSemuaMarkerLive();
             }
@@ -585,15 +620,19 @@
             else if (menuAktif === 'report') {
                 if (!salesTerpilihUntukLaporan) {
                     html += `<div class="content-title">📑 Laporan (Tanggal: ${tanggalAktif})</div>`;
-                    let uniqueSales = [...new Set(dataLaporan.map(l => l.nama_sales))];
                     
-                    if(uniqueSales.length === 0) {
-                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada laporan masuk.</div>`;
+                    if(listSemuaSales.length === 0) {
+                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada data sales.</div>`;
                     } else {
-                        uniqueSales.forEach(salesName => {
+                        // Tampilkan SEMUA sales dari database
+                        listSemuaSales.forEach(sales => {
+                            const salesName = sales.nama_lengkap;
                             const profil = getProfilSales(salesName);
                             const wColor = getWarnaSales(salesName);
+                            
+                            // Hitung jumlah laporan hari ini untuk sales tersebut
                             const jumlahLap = dataLaporan.filter(l => l.nama_sales === salesName).length;
+                            
                             html += `
                             <div class="data-card" onclick="pilihSalesLaporan('${salesName}')" style="display:flex; align-items:center; gap:15px; border-left-color: ${wColor};">
                                 <img src="${profil.foto}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid ${wColor};">
@@ -616,22 +655,27 @@
                     </div>`;
                     
                     const lapSales = dataLaporan.filter(l => l.nama_sales === salesTerpilihUntukLaporan);
-                    lapSales.forEach(toko => {
-                        let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
-                        html += `
-                        <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: ${wColor};">
-                            <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
-                            ${fotoThumbSidebar}
-                            <div class="data-desc">
-                                <b style="color:${wColor};">Insight:</b> ${toko.insight || '-'}<br>
-                                <b style="color:${wColor};">Order:</b> ${toko.order_barang || '-'}
-                            </div>
-                            <div style="margin-top:12px; display:flex; gap:10px;">
-                                <button onclick="bukaModalEditLaporan(${toko.id}, event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
-                                <button onclick="hapusLaporan(${toko.id}, event)" style="flex:1; background:#EF4444; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">🗑️ Hapus</button>
-                            </div>
-                        </div>`;
-                    });
+                    
+                    if (lapSales.length === 0) {
+                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko hari ini.</div>`;
+                    } else {
+                        lapSales.forEach(toko => {
+                            let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
+                            html += `
+                            <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: ${wColor};">
+                                <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
+                                ${fotoThumbSidebar}
+                                <div class="data-desc">
+                                    <b style="color:${wColor};">Insight:</b> ${toko.insight || '-'}<br>
+                                    <b style="color:${wColor};">Order:</b> ${toko.order_barang || '-'}
+                                </div>
+                                <div style="margin-top:12px; display:flex; gap:10px;">
+                                    <button onclick="bukaModalEditLaporan(${toko.id}, event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
+                                    <button onclick="hapusLaporan(${toko.id}, event)" style="flex:1; background:#EF4444; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">🗑️ Hapus</button>
+                                </div>
+                            </div>`;
+                        });
+                    }
                 }
             }
             else if (menuAktif === 'stats') {
