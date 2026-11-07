@@ -98,15 +98,15 @@
                 <textarea id="edit-lap-insight" rows="2"></textarea>
             </div>
             <div class="input-group" style="margin-bottom: 10px;">
-                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">📦 Stok Pupuk</label>
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">📦 Stok pupuk terbanyak</label>
                 <textarea id="edit-lap-stok" rows="2"></textarea>
             </div>
             <div class="input-group" style="margin-bottom: 10px;">
-                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">🛒 Order Barang</label>
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">🛒 Order</label>
                 <textarea id="edit-lap-order" rows="2"></textarea>
             </div>
             <div class="input-group" style="margin-bottom: 10px;">
-                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">❌ Alasan Tidak Order</label>
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">❌ Alasan tidak order</label>
                 <textarea id="edit-lap-alasan" rows="2"></textarea>
             </div>
             <div class="modal-btn-group">
@@ -205,7 +205,6 @@
         let salesTerpilihUntukLaporan = null;
         let dataRuteMentah = []; 
 
-        // RUMUS HAVERSINE UNTUK MENGHITUNG JARAK (METER) 
         function hitungJarak(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const p1 = lat1 * Math.PI/180;
@@ -390,8 +389,6 @@
               }).subscribe();
         }
 
-        const ikonToko = L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
-
         function terbangKeLokasi(lat, lng) { map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 }); }
         
         function ubahMenu(menu) { 
@@ -435,7 +432,7 @@
         function ubahRentangStatistik(rentang) { rentangStatistik = rentang; renderPanelKiri(); }
         function exportKeCSV() {
             if(dataLaporan.length === 0) { alert("Data kosong di tanggal ini!"); return; }
-            let csvContent = "data:text/csv;charset=utf-8,Waktu Kunjungan,Nama Sales,Kecamatan,Nama Kios,Nama Pemilik,No HP,Insight,Stok Pupuk,Order,Alasan Tidak Order,Link Foto\n";
+            let csvContent = "data:text/csv;charset=utf-8,Waktu Kunjungan,Nama Sales,Kecamatan,Nama Kios,Nama Pemilik,No HP,Insight,Stok Pupuk Terbanyak,Order,Alasan Tidak Order,Link Foto\n";
             dataLaporan.forEach(row => {
                 let tanggal = row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '-';
                 let baris = `"${tanggal}","${row.nama_sales||'-'}","${row.kecamatan||'-'}","${row.nama_toko_klien||'-'}","${row.nama_pemilik||'-'}","${row.no_hp||'-'}","${(row.insight||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.stok_pupuk||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.order_barang||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.alasan_tidak_order||'').replace(/"/g,'""').replace(/\n/g,' ')}","${row.foto_url||'-'}"`;
@@ -445,6 +442,12 @@
             link.setAttribute("href", encodeURI(csvContent));
             link.setAttribute("download", `Laporan_JS_App_${tanggalAktif}.csv`);
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        function formatingNoHp(no_hp) {
+            if (!no_hp) return '';
+            const no = no_hp.replace(/\D/g, '');
+            return no.startsWith('0') ? '62' + no.slice(1) : no;
         }
 
         function renderSemuaMarkerLive() {
@@ -462,15 +465,21 @@
                 if (laporanSalesIni.length > 0) {
                     laporanSalesIni.forEach(lap => {
                         let fotoThumb = lap.foto_url ? `<img src="${lap.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:8px; margin-bottom:8px; border: 1px solid #E5E7EB;">` : '';
+                        let linkHp = lap.no_hp ? `<a href="tel:${lap.no_hp}" style="color:#3B82F6; text-decoration:none; font-weight:800;">${lap.no_hp}</a>` : '-';
+                        let linkWa = lap.no_hp ? `<a href="https://wa.me/${formatingNoHp(lap.no_hp)}" target="_blank" style="color:#10B981; text-decoration:none; font-weight:800; margin-left:5px;">(WA)</a>` : '';
+                        
                         historyHTML += `
                             <div style="border-left: 3px solid ${wColor}; padding-left: 15px; margin-bottom: 25px; position: relative;">
                                 <div style="position: absolute; left: -7.5px; top: 0; width: 12px; height: 12px; background: ${wColor}; border-radius: 50%; border: 2px solid white;"></div>
                                 <b style="font-size: 14px; color: #111827; display: block; margin-bottom: 2px;">🏪 ${lap.nama_toko_klien}</b>
-                                <span style="font-size:11px; color:#6B7280; display:block;">👤 Kios: ${lap.nama_pemilik || '-'}</span>
+                                <span style="font-size:11px; color:#6B7280; display:block; margin-bottom:2px;">👤 Kios: ${lap.nama_pemilik || '-'}</span>
+                                <span style="font-size:11px; color:#6B7280; display:block;">📞 ${linkHp} ${linkWa}</span>
                                 ${fotoThumb}
                                 <div style="background: #F3F4F6; padding: 10px; border-radius: 8px; font-size: 11.5px; color: #374151; line-height: 1.5;">
                                     <b style="color:${wColor};">💡 Insight:</b> ${lap.insight || '-'}<br>
-                                    <b style="color:${wColor};">🛒 Order:</b> ${lap.order_barang || '-'}
+                                    <b style="color:${wColor};">📦 Stok pupuk terbanyak:</b> ${lap.stok_pupuk || '-'}<br>
+                                    <b style="color:${wColor};">🛒 Order:</b> ${lap.order_barang || '-'}<br>
+                                    <b style="color:${wColor};">❌ Alasan tidak order:</b> ${lap.alasan_tidak_order || '-'}
                                 </div>
                             </div>`;
                     });
@@ -494,12 +503,10 @@
             });
         }
 
-        // --- SISTEM ROUTING OSRM JALAN RAYA ---
         async function renderGarisHistoryOSRM() {
             layerHistoryLines.clearLayers();
             let ruteTerpisah = {};
             
-            // 1. Kumpulkan semua titik
             dataRuteMentah.forEach(titik => { 
                 const nama = titik.nama_sales;
                 if (nama) {
@@ -508,30 +515,25 @@
                 }
             });
 
-            // 2. Filter & Request Rute Asli per Sales
             for (let nama in ruteTerpisah) {
                 let rawPoints = ruteTerpisah[nama];
                 if (rawPoints.length < 2) continue;
 
-                // Tahap 1: Buang titik sampah (drifting) yang jaraknya < 300 Meter
                 let waypoints = [rawPoints[0]];
                 let lastKept = rawPoints[0];
                 
                 for (let i = 1; i < rawPoints.length; i++) {
                     let p = rawPoints[i];
                     let dist = hitungJarak(lastKept.lat, lastKept.lon, p.lat, p.lon);
-                    // Jika pindah >300 meter, anggap valid (bukan drift diam di warung)
                     if (dist > 300 && dist < 20000) {
                         waypoints.push(p);
                         lastKept = p;
                     }
                 }
                 
-                // Pastikan titik terakhir ikut masuk
                 let finalDist = hitungJarak(lastKept.lat, lastKept.lon, rawPoints[rawPoints.length-1].lat, rawPoints[rawPoints.length-1].lon);
                 if(finalDist > 50) waypoints.push(rawPoints[rawPoints.length-1]);
 
-                // Tahap 2: Limitasi 80 Waypoint untuk API Routing
                 if (waypoints.length > 80) {
                     let step = Math.ceil(waypoints.length / 80);
                     let downsampled = [];
@@ -544,7 +546,6 @@
 
                 if (waypoints.length < 2) continue;
 
-                // Tahap 3: Panggil API Jalan Raya OSRM (Gratis)
                 let coordsString = waypoints.map(wp => `${wp.lon},${wp.lat}`).join(';');
                 let osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
 
@@ -553,12 +554,10 @@
                     let data = await response.json();
                     
                     if (data.routes && data.routes.length > 0) {
-                        // Berhasil! Gambar rute jalan raya
                         L.geoJSON(data.routes[0].geometry, {
                             style: { color: getWarnaSales(nama), weight: 5, opacity: 0.9, lineJoin: 'round' }
                         }).addTo(layerHistoryLines);
                     } else {
-                        // Fallback darurat jika gagal hitung jalan raya
                         let latlngs = waypoints.map(wp => [wp.lat, wp.lon]);
                         L.polyline(latlngs, { color: getWarnaSales(nama), weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(layerHistoryLines);
                     }
@@ -589,19 +588,45 @@
                     if (toko.latitude_checkin && toko.longitude_checkin) {
                         const profil = getProfilSales(toko.nama_sales);
                         const wColor = getWarnaSales(toko.nama_sales);
+                        
+                        const pinHTML = `
+                            <div style="position: relative; text-align: center;">
+                                <div style="
+                                    background-color: ${wColor}; 
+                                    width: 32px; height: 32px; 
+                                    border-radius: 50% 50% 50% 0; 
+                                    transform: rotate(-45deg); 
+                                    border: 2px solid white; 
+                                    box-shadow: 0 5px 10px rgba(0,0,0,0.4); 
+                                    display: flex; justify-content: center; align-items: center;
+                                    position: absolute; bottom: 0; left: -16px;
+                                ">
+                                    <span style="transform: rotate(45deg); font-size: 14px; margin-bottom: 2px; margin-right: -2px;">📸</span>
+                                </div>
+                            </div>
+                        `;
+                        const customPinToko = L.divIcon({ html: pinHTML, className: '', iconSize: [0, 0], iconAnchor: [0, 0], popupAnchor: [0, -35] });
+
+                        let linkHp = toko.no_hp ? `<a href="tel:${toko.no_hp}" style="color:#3B82F6; text-decoration:none; font-weight:800;">${toko.no_hp}</a>` : '-';
+                        let linkWa = toko.no_hp ? `<a href="https://wa.me/${formatingNoHp(toko.no_hp)}" target="_blank" style="color:#10B981; text-decoration:none; font-weight:800; margin-left:5px;">(WA)</a>` : '';
+
                         const fotoMarkerToko = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover;">` : `<div style="padding:10px; background:#F3F4F6; color:#9CA3AF; font-size:12px; font-style:italic;">Tanpa Foto</div>`;
                         const idCardHTML = `<div style="font-family: 'Poppins'; width: 250px; text-align: center; border: 2px solid ${wColor}; border-radius:12px; overflow:hidden; background:white;">
                             <div style="background: ${wColor}; color: white; padding: 10px; font-weight: 900; font-size: 14px;">👤 ${profil.nama}</div>
                             ${fotoMarkerToko}
                             <div style="padding: 15px; text-align:left;">
                                 <b style="font-size: 15px; color: #111827;">🏪 ${toko.nama_toko_klien}</b>
-                                <div style="font-size:11px; color:#6B7280; margin-bottom:8px;">📍 ${toko.kecamatan || '-'} | 👤 ${toko.nama_pemilik || '-'}</div>
+                                <div style="font-size:11px; color:#6B7280; margin-bottom:4px;">📍 ${toko.kecamatan || '-'} | 👤 ${toko.nama_pemilik || '-'}</div>
+                                <div style="font-size:11px; color:#6B7280; margin-bottom:8px;">📞 ${linkHp} ${linkWa}</div>
                                 <div style="font-size: 11.5px; color: #374151; background:#F9FAFB; padding:10px; border-radius:8px; line-height: 1.5;">
                                     <b style="color:${wColor};">💡 Insight:</b> ${toko.insight || '-'}<br>
-                                    <b style="color:${wColor};">🛒 Order:</b> ${toko.order_barang || '-'}
+                                    <b style="color:${wColor};">📦 Stok pupuk terbanyak:</b> ${toko.stok_pupuk || '-'}<br>
+                                    <b style="color:${wColor};">🛒 Order:</b> ${toko.order_barang || '-'}<br>
+                                    <b style="color:${wColor};">❌ Alasan tidak order:</b> ${toko.alasan_tidak_order || '-'}
                                 </div>
                             </div></div>`;
-                        L.marker([toko.latitude_checkin, toko.longitude_checkin], {icon: ikonToko}).bindPopup(idCardHTML).addTo(layerToko);
+                            
+                        L.marker([toko.latitude_checkin, toko.longitude_checkin], {icon: customPinToko}).bindPopup(idCardHTML).addTo(layerToko);
                     }
                 });
             }
@@ -716,7 +741,11 @@
             } 
             else if (menuAktif === 'report') {
                 if (!salesTerpilihUntukLaporan) {
-                    html += `<div class="content-title">📑 Laporan (Tanggal: ${tanggalAktif})</div>`;
+                    let totalKiosAktual = dataLaporan.length;
+                    html += `<div class="content-title" style="align-items:flex-start;">
+                                <div>📑 Laporan (Tanggal: ${tanggalAktif})</div>
+                                <span style="background:#10B981;color:white;padding:3px 8px;border-radius:10px;font-size:12px;font-weight:900;">${totalKiosAktual} Kios Aktual</span>
+                             </div>`;
                     
                     if(listSemuaSales.length === 0) {
                         html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada data sales.</div>`;
@@ -732,7 +761,7 @@
                                 <img src="${profil.foto}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid ${wColor};">
                                 <div style="flex: 1;">
                                     <div style="font-weight:800; font-size:15px; color:#111827;">${profil.nama}</div>
-                                    <div style="font-size:12px; color:#6B7280; font-weight:600; margin-top:2px;">📁 ${jumlahLap} Laporan Toko</div>
+                                    <div style="font-size:12px; color:#6B7280; font-weight:600; margin-top:2px;">📁 ${jumlahLap} Laporan Kios</div>
                                 </div>
                                 <div style="font-size:18px; color:${wColor};">➡️</div>
                             </div>`;
@@ -740,28 +769,35 @@
                     }
                 } else {
                     const wColor = getWarnaSales(salesTerpilihUntukLaporan);
+                    const lapSales = dataLaporan.filter(l => l.nama_sales === salesTerpilihUntukLaporan);
+                    
                     html += `
                     <div class="content-title" style="margin-bottom: 20px;">
                         <button onclick="pilihSalesLaporan(null)" style="background:#F3F4F6; border:1px solid #D1D5DB; padding:8px 15px; border-radius:10px; cursor:pointer; font-size:12px; font-weight:800; color:#374151; display:flex; align-items:center; gap:5px; transition:0.2s;">⬅️ KEMBALI</button>
+                        <span style="background:#10B981;color:white;padding:3px 8px;border-radius:10px;font-size:12px;font-weight:900;">${lapSales.length} Kios Aktual</span>
                     </div>
                     <div style="font-size:14px; font-weight:900; color:#1F2937; margin-bottom:15px; border-bottom:2px solid ${wColor}; padding-bottom:5px;">
                         Laporan: ${getProfilSales(salesTerpilihUntukLaporan).nama}
                     </div>`;
-                    
-                    const lapSales = dataLaporan.filter(l => l.nama_sales === salesTerpilihUntukLaporan);
                     
                     if (lapSales.length === 0) {
                         html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko.</div>`;
                     } else {
                         lapSales.forEach(toko => {
                             let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
+                            let linkHp = toko.no_hp ? `<a href="tel:${toko.no_hp}" style="color:#3B82F6; text-decoration:none; font-weight:800;">${toko.no_hp}</a>` : '-';
+                            let linkWa = toko.no_hp ? `<a href="https://wa.me/${formatingNoHp(toko.no_hp)}" target="_blank" style="color:#10B981; text-decoration:none; font-weight:800; margin-left:5px;">(WA)</a>` : '';
+
                             html += `
                             <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: ${wColor};">
                                 <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
+                                <div style="font-size:11px; color:#6B7280; margin-top:3px;">📞 ${linkHp} ${linkWa}</div>
                                 ${fotoThumbSidebar}
                                 <div class="data-desc">
                                     <b style="color:${wColor};">Insight:</b> ${toko.insight || '-'}<br>
-                                    <b style="color:${wColor};">Order:</b> ${toko.order_barang || '-'}
+                                    <b style="color:${wColor};">Stok pupuk terbanyak:</b> ${toko.stok_pupuk || '-'}<br>
+                                    <b style="color:${wColor};">Order:</b> ${toko.order_barang || '-'}<br>
+                                    <b style="color:${wColor};">Alasan tidak order:</b> ${toko.alasan_tidak_order || '-'}
                                 </div>
                                 <div style="margin-top:12px; display:flex; gap:10px;">
                                     <button onclick="bukaModalEditLaporan(${toko.id}, event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
