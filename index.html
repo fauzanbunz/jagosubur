@@ -35,7 +35,8 @@
 
         .menu-container { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.5); }
         .btn-menu { background: white; border: 2px solid #3B82F6; color: #3B82F6; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center;}
-        .btn-menu:hover, .btn-menu.active { background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; transform: scale(1.05) translateY(-3px); box-shadow: 0 8px 15px rgba(59, 130, 246, 0.3); border-color: transparent; }
+        .btn-menu:hover, .btn-menu.active { background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; transform: scale(1.03) translateY(-2px); box-shadow: 0 8px 15px rgba(59, 130, 246, 0.3); border-color: transparent; }
+        .btn-menu-full { grid-column: span 2; flex-direction: row; justify-content: center; gap: 8px; padding: 10px 12px; }
         .btn-logout-small { grid-column: span 2; background: #FEE2E2; color: #EF4444; border: none; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; }
         .btn-logout-small:hover { background: #FECACA; transform: scale(1.02); }
 
@@ -47,6 +48,14 @@
         .data-title { font-weight: 800; color: #111827; font-size: 15px; display: flex; align-items: center; gap: 8px;}
         .data-subtitle { font-size: 12px; color: #6B7280; margin-top: 3px; font-weight: 600; }
         .data-desc { font-size: 12px; color: #4B5563; margin-top: 8px; background: #F3F4F6; padding: 10px; border-radius: 8px; line-height: 1.5;}
+
+        .sales-form-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); border-left: 5px solid #10B981; }
+        .sales-form-card label { display: block; font-size: 11px; font-weight: 800; color: #374151; margin-bottom: 4px; margin-top: 8px; }
+        .sales-form-card input { width: 100%; padding: 10px 12px; border: 1.5px solid #E5E7EB; border-radius: 10px; font-size: 13px; background: #F9FAFB; outline: none; transition: 0.2s; }
+        .sales-form-card input:focus { border-color: #10B981; background: #fff; }
+        .btn-tambah-sales { width: 100%; margin-top: 12px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 11px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .btn-tambah-sales:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(16, 185, 129, 0.3); }
+        .btn-tambah-sales:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .btn-edit-profil { background: #E5E7EB; border: none; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-edit-profil:hover { background: #3B82F6; color: white; }
@@ -169,6 +178,7 @@
                 <button class="btn-menu" id="menu-history" onclick="ubahMenu('history')"><span style="font-size: 20px;">🗺️</span> History Map</button>
                 <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')"><span style="font-size: 20px;">📝</span> Laporan Tim</button>
                 <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')"><span style="font-size: 20px;">📊</span> Statistik</button>
+                <button class="btn-menu btn-menu-full" id="menu-sales" onclick="ubahMenu('sales')"><span style="font-size: 18px;">🪪</span> Sales ID</button>
                 <button class="btn-logout-small" onclick="location.reload()">Keluar (Logout)</button>
             </div>
             
@@ -224,13 +234,20 @@
             return warnaAssigned[nama];
         }
 
+        // Format tanggal selalu berdasarkan WIB (GMT+7 / Asia/Jakarta)
         function formatTanggal(dateStr) {
             const d = dateStr ? new Date(dateStr) : new Date();
-            let month = '' + (d.getMonth() + 1);
-            let day = '' + d.getDate();
-            if (month.length < 2) month = '0' + month;
-            if (day.length < 2) day = '0' + day;
-            return [d.getFullYear(), month, day].join('-');
+            if (isNaN(d.getTime())) return '';
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(d);
+            const y = parts.find(p => p.type === 'year').value;
+            const m = parts.find(p => p.type === 'month').value;
+            const day = parts.find(p => p.type === 'day').value;
+            return `${y}-${m}-${day}`;
         }
 
         let tanggalAktif = formatTanggal();
@@ -239,6 +256,7 @@
         function ubahTanggal() {
             tanggalAktif = document.getElementById('filter-tanggal').value;
             salesTerpilihUntukLaporan = null;
+            if (map) map.closePopup(); // Tutup pop-up lama saat ganti tanggal
             
             const hariIni = formatTanggal();
             if (tanggalAktif !== hariIni && menuAktif === 'track') {
@@ -261,7 +279,7 @@
             return { nama: namaAsli, foto: `https://ui-avatars.com/api/?name=${namaAsli}&background=${warnaTema}&color=fff&size=75&bold=true` };
         }
 
-        // FUNGSI MODAL
+        // FUNGSI MODAL EDIT & HAPUS LAPORAN
         function bukaModalEditLaporan(id, event) {
             event.stopPropagation(); 
             const lap = dataLaporan.find(l => l.id === id);
@@ -293,9 +311,96 @@
             if(confirm("APAKAH BOS YAKIN?\nLaporan ini akan dihapus permanen.")) {
                 const { error } = await db.from('laporan_kunjungan').delete().eq('id', id);
                 if(error) alert("Gagal menghapus data: " + error.message);
-                else tarikDataSupabase();
+                else {
+                    if (map) map.closePopup();
+                    tarikDataSupabase();
+                }
             }
         }
+
+        // FUNGSI MANAJEMEN SALES ID (TAMBAH, SALIN, HAPUS)
+        async function tambahSalesBaru() {
+            const inputNama = document.getElementById('new-sales-nama');
+            const inputUser = document.getElementById('new-sales-user');
+            const inputPass = document.getElementById('new-sales-pass');
+            const btn = document.getElementById('btn-simpan-sales-id');
+
+            const nama_lengkap = inputNama.value.trim();
+            const username = inputUser.value.trim().toLowerCase().replace(/\s+/g, '');
+            const password = inputPass.value.trim();
+
+            if (!nama_lengkap || !username || !password) {
+                alert("Nama Lengkap, Sales ID, dan Password wajib diisi semua!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Menyimpan...";
+
+            try {
+                // Cek apakah username sudah ada
+                const { data: existing } = await db
+                    .from('sales_team')
+                    .select('id')
+                    .eq('username', username)
+                    .maybeSingle();
+
+                if (existing) {
+                    alert(`Sales ID "${username}" sudah terdaftar! Gunakan ID lain.`);
+                    btn.disabled = false;
+                    btn.innerText = "+ Buat Sales ID";
+                    return;
+                }
+
+                const { error } = await db.from('sales_team').insert([
+                    {
+                        nama_lengkap: nama_lengkap,
+                        username: username,
+                        password: password,
+                        role: 'sales'
+                    }
+                ]);
+
+                if (error) {
+                    alert("Gagal menambahkan Sales ID: " + error.message);
+                } else {
+                    inputNama.value = '';
+                    inputUser.value = '';
+                    inputPass.value = '';
+                    alert(`Berhasil membuat akun Sales!\nNama: ${nama_lengkap}\nSales ID: ${username}\nPassword: ${password}`);
+                    await tarikDataSupabase();
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "+ Buat Sales ID";
+                }
+            }
+        }
+
+        function salinAkunSales(nama, username, password, event) {
+            event.stopPropagation();
+            const teks = `Akun JS-App Sales\nNama: ${nama}\nSales ID: ${username}\nPassword: ${password}`;
+            navigator.clipboard.writeText(teks).then(() => {
+                alert(`Info login "${nama}" berhasil disalin ke clipboard!`);
+            });
+        }
+
+        async function hapusSalesID(id, username, event) {
+            event.stopPropagation();
+            if (confirm(`Yakin ingin menghapus akun Sales ID "${username}" secara permanen?`)) {
+                const { error } = await db.from('sales_team').delete().eq('id', id);
+                if (error) {
+                    alert("Gagal menghapus Sales ID: " + error.message);
+                } else {
+                    await tarikDataSupabase();
+                }
+            }
+        }
+
+        // FUNGSI MODAL PROFIL LOKAL
         document.getElementById('edit-file-foto').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -379,7 +484,7 @@
                   const waktuTerekam = titikBaru.created_at || titikBaru.recorded_at;
                   const tglData = waktuTerekam ? formatTanggal(waktuTerekam) : formatTanggal();
                   
-                  if (tglData === tanggalAktif && titikBaru.nama_sales) {
+                  if (tglData === tanggalAktif && titikBaru.nama_sales && titikBaru.nama_sales.toLowerCase() !== 'null') {
                       dataSalesTerakhir[titikBaru.nama_sales] = titikBaru; 
                       if (menuAktif === 'track') {
                           renderSemuaMarkerLive(); 
@@ -434,7 +539,7 @@
             if(dataLaporan.length === 0) { alert("Data kosong di tanggal ini!"); return; }
             let csvContent = "data:text/csv;charset=utf-8,Waktu Kunjungan,Nama Sales,Kecamatan,Nama Kios,Nama Pemilik,No HP,Insight,Stok Pupuk Terbanyak,Order,Alasan Tidak Order,Link Foto\n";
             dataLaporan.forEach(row => {
-                let tanggal = row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '-';
+                let tanggal = row.created_at ? new Date(row.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) : '-';
                 let baris = `"${tanggal}","${row.nama_sales||'-'}","${row.kecamatan||'-'}","${row.nama_toko_klien||'-'}","${row.nama_pemilik||'-'}","${row.no_hp||'-'}","${(row.insight||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.stok_pupuk||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.order_barang||'').replace(/"/g,'""').replace(/\n/g,' ')}","${(row.alasan_tidak_order||'').replace(/"/g,'""').replace(/\n/g,' ')}","${row.foto_url||'-'}"`;
                 csvContent += baris + "\n";
             });
@@ -570,20 +675,31 @@
         }
 
         async function tarikDataSupabase() {
-            const resSales = await db.from('sales_team').select('*').eq('role', 'sales');
+            if (map) map.closePopup(); // Pastikan tidak ada pop-up lama tertinggal
+
+            const resSales = await db.from('sales_team').select('*').eq('role', 'sales').order('id', { ascending: false });
             if (resSales.data) {
                 listSemuaSales = resSales.data.filter(s => s.nama_lengkap && s.nama_lengkap.trim() !== '' && s.nama_lengkap.toLowerCase() !== 'null');
             }
 
             const resToko = await db.from('laporan_kunjungan').select('*').order('id', { ascending: false });
+            layerToko.clearLayers(); // Bersihkan semua marker laporan lama
+
             if (resToko.data) {
-                dataLaporanMentah = resToko.data;
-                dataLaporan = resToko.data.filter(lap => {
-                    const tglData = lap.created_at ? formatTanggal(lap.created_at) : formatTanggal();
+                // Saring data valid saja (memiliki nama_sales valid & memiliki created_at)
+                dataLaporanMentah = resToko.data.filter(lap => {
+                    if (!lap.nama_sales || lap.nama_sales.trim() === '' || lap.nama_sales.toLowerCase() === 'null') return false;
+                    if (!lap.created_at) return false;
+                    return true;
+                });
+
+                // Filter laporan HANYA untuk tanggal aktif (WIB)
+                dataLaporan = dataLaporanMentah.filter(lap => {
+                    const tglData = formatTanggal(lap.created_at);
                     return tglData === tanggalAktif;
                 });
 
-                layerToko.clearLayers();
+                // Render pin laporan HANYA jika ada laporan di tanggal aktif
                 dataLaporan.forEach(toko => {
                     if (toko.latitude_checkin && toko.longitude_checkin) {
                         const profil = getProfilSales(toko.nama_sales);
@@ -629,6 +745,9 @@
                         L.marker([toko.latitude_checkin, toko.longitude_checkin], {icon: customPinToko}).bindPopup(idCardHTML).addTo(layerToko);
                     }
                 });
+            } else {
+                dataLaporanMentah = [];
+                dataLaporan = [];
             }
 
             const resRute = await db.from('location_breadcrumbs')
@@ -638,9 +757,10 @@
 
             if (resRute.data && resRute.data.length > 0) {
                 const ruteTersaring = resRute.data.filter(rute => {
+                    if (!rute.nama_sales || rute.nama_sales.toLowerCase() === 'null') return false;
                     const waktuTerekam = rute.created_at || rute.recorded_at;
-                    const tglData = waktuTerekam ? formatTanggal(waktuTerekam) : formatTanggal();
-                    return tglData === tanggalAktif; 
+                    if (!waktuTerekam) return false;
+                    return formatTanggal(waktuTerekam) === tanggalAktif; 
                 });
                 
                 dataRuteMentah = ruteTersaring.sort((a, b) => a.id - b.id); 
@@ -781,7 +901,7 @@
                     </div>`;
                     
                     if (lapSales.length === 0) {
-                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko.</div>`;
+                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko di tanggal ini.</div>`;
                     } else {
                         lapSales.forEach(toko => {
                             let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
@@ -821,6 +941,58 @@
                     <canvas id="grafikPerforma"></canvas>
                 </div>`;
             }
+            else if (menuAktif === 'sales') {
+                html += `
+                <div class="content-title">
+                    <span>🪪 Manajemen Sales ID</span>
+                    <span style="background:#3B82F6;color:white;padding:3px 10px;border-radius:10px;font-size:12px;">${listSemuaSales.length} Akun</span>
+                </div>
+
+                <div class="sales-form-card">
+                    <div style="font-size:13px; font-weight:800; color:#111827; margin-bottom:6px;">➕ Tambah ID Sales Baru</div>
+                    <label>Nama Lengkap Sales</label>
+                    <input type="text" id="new-sales-nama" placeholder="Contoh: Budi Santoso">
+                    
+                    <label>Sales ID (Username Login HP)</label>
+                    <input type="text" id="new-sales-user" placeholder="Contoh: budi01" oninput="this.value = this.value.toLowerCase().replace(/\\s+/g, '')">
+                    
+                    <label>Password</label>
+                    <input type="text" id="new-sales-pass" placeholder="Masukkan password login">
+                    
+                    <button id="btn-simpan-sales-id" class="btn-tambah-sales" onclick="tambahSalesBaru()">+ Buat Sales ID</button>
+                </div>
+
+                <div class="content-title" style="font-size:14px; margin-bottom:10px;">📋 Daftar Sales ID Terdaftar</div>`;
+
+                if (listSemuaSales.length === 0) {
+                    html += `<div style="text-align:center; color:#6B7280; font-size:13px; padding:20px; background:white; border-radius:15px;">Belum ada Sales ID terdaftar.</div>`;
+                } else {
+                    listSemuaSales.forEach(sales => {
+                        const wColor = getWarnaSales(sales.nama_lengkap);
+                        const profil = getProfilSales(sales.nama_lengkap);
+                        const safeNama = (sales.nama_lengkap || '').replace(/'/g, "\\'");
+                        const safeUser = (sales.username || '').replace(/'/g, "\\'");
+                        const safePass = (sales.password || '').replace(/'/g, "\\'");
+
+                        html += `
+                        <div class="data-card" style="border-left-color: ${wColor}; cursor: default;">
+                            <div class="data-title">
+                                <img src="${profil.foto}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid ${wColor};">
+                                <span>${sales.nama_lengkap}</span>
+                            </div>
+                            <div class="data-desc" style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+                                <div><b>🆔 Sales ID:</b> <span style="color:#1D4ED8; font-weight:800;">${sales.username || '-'}</span></div>
+                                <div><b>🔑 Password:</b> <span style="color:#111827; font-weight:700;">${sales.password || '-'}</span></div>
+                            </div>
+                            <div style="margin-top: 10px; display: flex; gap: 8px;">
+                                <button onclick="salinAkunSales('${safeNama}', '${safeUser}', '${safePass}', event)" style="flex:1; background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; padding:7px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:800;">📋 Salin Akun</button>
+                                <button onclick="hapusSalesID(${sales.id}, '${safeUser}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:800;">🗑️ Hapus ID</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+            }
+
             panel.innerHTML = html;
             if (menuAktif === 'stats') { setTimeout(renderGrafik, 100); }
         }
