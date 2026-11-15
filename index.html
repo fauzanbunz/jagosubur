@@ -36,7 +36,7 @@
         .menu-container { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.5); }
         .btn-menu { background: white; border: 2px solid #3B82F6; color: #3B82F6; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center;}
         .btn-menu:hover, .btn-menu.active { background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; transform: scale(1.03) translateY(-2px); box-shadow: 0 8px 15px rgba(59, 130, 246, 0.3); border-color: transparent; }
-        .btn-menu-full { grid-column: span 2; flex-direction: row; justify-content: center; gap: 8px; padding: 10px 12px; }
+        .btn-menu-row { flex-direction: row; justify-content: center; gap: 8px; padding: 11px 12px; }
         .btn-logout-small { grid-column: span 2; background: #FEE2E2; color: #EF4444; border: none; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; }
         .btn-logout-small:hover { background: #FECACA; transform: scale(1.02); }
 
@@ -56,6 +56,10 @@
         .btn-tambah-sales { width: 100%; margin-top: 12px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 11px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; transition: 0.2s; }
         .btn-tambah-sales:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(16, 185, 129, 0.3); }
         .btn-tambah-sales:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-tambah-admin { width: 100%; margin-top: 12px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; border: none; padding: 11px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .btn-tambah-admin:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(139, 92, 246, 0.3); }
+        .btn-tambah-admin:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .btn-edit-profil { background: #E5E7EB; border: none; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-edit-profil:hover { background: #3B82F6; color: white; }
@@ -96,7 +100,7 @@
 </head>
 <body>
 
-    <!-- Modals -->
+    <!-- Modal Edit Laporan -->
     <div id="modal-edit-laporan" class="modal-overlay">
         <div class="modal-box">
             <h3>Edit Laporan Kunjungan</h3>
@@ -125,6 +129,33 @@
         </div>
     </div>
 
+    <!-- Modal Edit Akun (Sales ID & Admin ID) -->
+    <div id="modal-edit-akun" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-akun-title">Edit Akun</h3>
+            <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Perubahan langsung tersimpan ke Database Supabase.</p>
+            <input type="hidden" id="edit-akun-id">
+            <input type="hidden" id="edit-akun-role">
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">Nama Lengkap</label>
+                <input type="text" id="edit-akun-nama" placeholder="Nama Lengkap">
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label id="label-edit-akun-user" style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">Username / ID</label>
+                <input type="text" id="edit-akun-user" placeholder="Username" oninput="this.value = this.value.toLowerCase().replace(/\s+/g, '')">
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label style="font-size:12px; font-weight:800; color:#374151; display:block; text-align:left; margin-bottom:5px;">Password</label>
+                <input type="text" id="edit-akun-pass" placeholder="Password">
+            </div>
+            <div class="modal-btn-group">
+                <button class="btn-cancel" onclick="tutupModalEditAkun()">Batal</button>
+                <button class="btn-save" id="btn-simpan-akun" onclick="simpanEditAkun()">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pengaturan Profil Lokal -->
     <div id="modal-profil" class="modal-overlay">
         <div class="modal-box">
             <h3>Pengaturan Profil Sales</h3>
@@ -146,6 +177,7 @@
         </div>
     </div>
 
+    <!-- Login Screen -->
     <div id="login-screen">
         <div class="login-card">
             <h2>JS-App</h2>
@@ -161,6 +193,7 @@
         </div>
     </div>
 
+    <!-- Dashboard Screen -->
     <div id="dashboard-screen">
         <div class="sidebar">
             <div class="sidebar-header">
@@ -178,7 +211,8 @@
                 <button class="btn-menu" id="menu-history" onclick="ubahMenu('history')"><span style="font-size: 20px;">🗺️</span> History Map</button>
                 <button class="btn-menu" id="menu-report" onclick="ubahMenu('report')"><span style="font-size: 20px;">📝</span> Laporan Tim</button>
                 <button class="btn-menu" id="menu-stats" onclick="ubahMenu('stats')"><span style="font-size: 20px;">📊</span> Statistik</button>
-                <button class="btn-menu btn-menu-full" id="menu-sales" onclick="ubahMenu('sales')"><span style="font-size: 18px;">🪪</span> Sales ID</button>
+                <button class="btn-menu btn-menu-row" id="menu-sales" onclick="ubahMenu('sales')"><span style="font-size: 18px;">🪪</span> Sales ID</button>
+                <button class="btn-menu btn-menu-row" id="menu-admin" onclick="ubahMenu('admin')"><span style="font-size: 18px;">🛡️</span> Admin ID</button>
                 <button class="btn-logout-small" onclick="location.reload()">Keluar (Logout)</button>
             </div>
             
@@ -209,6 +243,7 @@
         let dataLaporan = []; 
         let dataLaporanMentah = []; 
         let listSemuaSales = [];
+        let listSemuaAdmin = [];
         let menuAktif = 'track'; 
         let rentangStatistik = 'harian'; 
         let myChart = null; 
@@ -256,7 +291,7 @@
         function ubahTanggal() {
             tanggalAktif = document.getElementById('filter-tanggal').value;
             salesTerpilihUntukLaporan = null;
-            if (map) map.closePopup(); // Tutup pop-up lama saat ganti tanggal
+            if (map) map.closePopup();
             
             const hariIni = formatTanggal();
             if (tanggalAktif !== hariIni && menuAktif === 'track') {
@@ -318,7 +353,82 @@
             }
         }
 
-        // FUNGSI MANAJEMEN SALES ID (TAMBAH, SALIN, HAPUS)
+        // FUNGSI MODAL EDIT AKUN (UNTUK ADMIN ID & SALES ID)
+        function bukaModalEditAkun(id, nama, username, password, role, event) {
+            event.stopPropagation();
+            document.getElementById('edit-akun-id').value = id;
+            document.getElementById('edit-akun-role').value = role;
+            document.getElementById('edit-akun-nama').value = nama;
+            document.getElementById('edit-akun-user').value = username;
+            document.getElementById('edit-akun-pass').value = password;
+
+            if (role === 'admin') {
+                document.getElementById('modal-akun-title').innerText = 'Edit Admin ID';
+                document.getElementById('label-edit-akun-user').innerText = 'Admin ID (Username Login)';
+            } else {
+                document.getElementById('modal-akun-title').innerText = 'Edit Sales ID';
+                document.getElementById('label-edit-akun-user').innerText = 'Sales ID (Username Login)';
+            }
+            document.getElementById('modal-edit-akun').style.display = 'flex';
+        }
+
+        function tutupModalEditAkun() {
+            document.getElementById('modal-edit-akun').style.display = 'none';
+        }
+
+        async function simpanEditAkun() {
+            const id = document.getElementById('edit-akun-id').value;
+            const role = document.getElementById('edit-akun-role').value;
+            const nama_lengkap = document.getElementById('edit-akun-nama').value.trim();
+            const username = document.getElementById('edit-akun-user').value.trim().toLowerCase().replace(/\s+/g, '');
+            const password = document.getElementById('edit-akun-pass').value.trim();
+            const btn = document.getElementById('btn-simpan-akun');
+
+            if (!nama_lengkap || !username || !password) {
+                alert("Nama Lengkap, ID Username, dan Password wajib diisi!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Menyimpan...";
+
+            try {
+                // Pastikan username baru tidak dipakai akun lain
+                const { data: existing } = await db
+                    .from('sales_team')
+                    .select('id')
+                    .eq('username', username)
+                    .neq('id', id)
+                    .maybeSingle();
+
+                if (existing) {
+                    alert(`ID "${username}" sudah digunakan akun lain! Silakan pakai ID berbeda.`);
+                    btn.disabled = false;
+                    btn.innerText = "Simpan Perubahan";
+                    return;
+                }
+
+                const { error } = await db.from('sales_team').update({
+                    nama_lengkap: nama_lengkap,
+                    username: username,
+                    password: password
+                }).eq('id', id);
+
+                if (error) {
+                    alert("Gagal mengubah akun: " + error.message);
+                } else {
+                    tutupModalEditAkun();
+                    await tarikDataSupabase();
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Simpan Perubahan";
+            }
+        }
+
+        // FUNGSI MANAJEMEN SALES ID (TAMBAH, EDIT, SALIN, HAPUS)
         async function tambahSalesBaru() {
             const inputNama = document.getElementById('new-sales-nama');
             const inputUser = document.getElementById('new-sales-user');
@@ -338,7 +448,6 @@
             btn.innerText = "Menyimpan...";
 
             try {
-                // Cek apakah username sudah ada
                 const { data: existing } = await db
                     .from('sales_team')
                     .select('id')
@@ -394,6 +503,91 @@
                 const { error } = await db.from('sales_team').delete().eq('id', id);
                 if (error) {
                     alert("Gagal menghapus Sales ID: " + error.message);
+                } else {
+                    await tarikDataSupabase();
+                }
+            }
+        }
+
+        // FUNGSI MANAJEMEN ADMIN ID (TAMBAH, EDIT, SALIN, HAPUS)
+        async function tambahAdminBaru() {
+            const inputNama = document.getElementById('new-admin-nama');
+            const inputUser = document.getElementById('new-admin-user');
+            const inputPass = document.getElementById('new-admin-pass');
+            const btn = document.getElementById('btn-simpan-admin-id');
+
+            const nama_lengkap = inputNama.value.trim();
+            const username = inputUser.value.trim().toLowerCase().replace(/\s+/g, '');
+            const password = inputPass.value.trim();
+
+            if (!nama_lengkap || !username || !password) {
+                alert("Nama Lengkap, Admin ID, dan Password wajib diisi semua!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Menyimpan...";
+
+            try {
+                const { data: existing } = await db
+                    .from('sales_team')
+                    .select('id')
+                    .eq('username', username)
+                    .maybeSingle();
+
+                if (existing) {
+                    alert(`Admin ID "${username}" sudah terdaftar! Gunakan ID lain.`);
+                    btn.disabled = false;
+                    btn.innerText = "+ Buat Admin ID";
+                    return;
+                }
+
+                const { error } = await db.from('sales_team').insert([
+                    {
+                        nama_lengkap: nama_lengkap,
+                        username: username,
+                        password: password,
+                        role: 'admin'
+                    }
+                ]);
+
+                if (error) {
+                    alert("Gagal menambahkan Admin ID: " + error.message);
+                } else {
+                    inputNama.value = '';
+                    inputUser.value = '';
+                    inputPass.value = '';
+                    alert(`Berhasil membuat akun Admin!\nNama: ${nama_lengkap}\nAdmin ID: ${username}\nPassword: ${password}`);
+                    await tarikDataSupabase();
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "+ Buat Admin ID";
+                }
+            }
+        }
+
+        function salinAkunAdmin(nama, username, password, event) {
+            event.stopPropagation();
+            const teks = `Akun JS-App Admin\nNama: ${nama}\nAdmin ID: ${username}\nPassword: ${password}`;
+            navigator.clipboard.writeText(teks).then(() => {
+                alert(`Info login Admin "${nama}" berhasil disalin ke clipboard!`);
+            });
+        }
+
+        async function hapusAdminID(id, username, event) {
+            event.stopPropagation();
+            if (listSemuaAdmin.length <= 1) {
+                alert("Tidak dapat menghapus akun Admin terakhir agar akses sistem tetap terjaga!");
+                return;
+            }
+            if (confirm(`Yakin ingin menghapus akun Admin ID "${username}" secara permanen?`)) {
+                const { error } = await db.from('sales_team').delete().eq('id', id);
+                if (error) {
+                    alert("Gagal menghapus Admin ID: " + error.message);
                 } else {
                     await tarikDataSupabase();
                 }
@@ -675,31 +869,33 @@
         }
 
         async function tarikDataSupabase() {
-            if (map) map.closePopup(); // Pastikan tidak ada pop-up lama tertinggal
+            if (map) map.closePopup();
 
             const resSales = await db.from('sales_team').select('*').eq('role', 'sales').order('id', { ascending: false });
             if (resSales.data) {
                 listSemuaSales = resSales.data.filter(s => s.nama_lengkap && s.nama_lengkap.trim() !== '' && s.nama_lengkap.toLowerCase() !== 'null');
             }
 
+            const resAdmin = await db.from('sales_team').select('*').eq('role', 'admin').order('id', { ascending: false });
+            if (resAdmin.data) {
+                listSemuaAdmin = resAdmin.data.filter(a => a.nama_lengkap && a.nama_lengkap.trim() !== '' && a.nama_lengkap.toLowerCase() !== 'null');
+            }
+
             const resToko = await db.from('laporan_kunjungan').select('*').order('id', { ascending: false });
-            layerToko.clearLayers(); // Bersihkan semua marker laporan lama
+            layerToko.clearLayers();
 
             if (resToko.data) {
-                // Saring data valid saja (memiliki nama_sales valid & memiliki created_at)
                 dataLaporanMentah = resToko.data.filter(lap => {
                     if (!lap.nama_sales || lap.nama_sales.trim() === '' || lap.nama_sales.toLowerCase() === 'null') return false;
                     if (!lap.created_at) return false;
                     return true;
                 });
 
-                // Filter laporan HANYA untuk tanggal aktif (WIB)
                 dataLaporan = dataLaporanMentah.filter(lap => {
                     const tglData = formatTanggal(lap.created_at);
                     return tglData === tanggalAktif;
                 });
 
-                // Render pin laporan HANYA jika ada laporan di tanggal aktif
                 dataLaporan.forEach(toko => {
                     if (toko.latitude_checkin && toko.longitude_checkin) {
                         const profil = getProfilSales(toko.nama_sales);
@@ -783,219 +979,3 @@
                 dataSalesTerakhir = {};
                 layerLive.clearLayers();
                 layerHistoryLines.clearLayers();
-            }
-            renderPanelKiri();
-        }
-
-        function renderGrafik() {
-            if (menuAktif !== 'stats') return;
-            const ctx = document.getElementById('grafikPerforma');
-            if (!ctx) return;
-
-            let jumlahKunjunganPerSales = {};
-            const hariIni = new Date();
-            
-            dataLaporanMentah.forEach(lap => {
-                const tglData = lap.created_at || null;
-                const tglLap = tglData ? new Date(tglData) : new Date(); 
-                const bedaWaktu = Math.abs(hariIni - tglLap);
-                const bedaHari = Math.ceil(bedaWaktu / (1000 * 60 * 60 * 24));
-                
-                let masukHitungan = false;
-                if(rentangStatistik === 'harian' && bedaHari <= 1 && tglLap.getDate() === hariIni.getDate()) masukHitungan = true;
-                if(rentangStatistik === 'mingguan' && bedaHari <= 7) masukHitungan = true;
-                if(rentangStatistik === 'bulanan' && bedaHari <= 30) masukHitungan = true;
-
-                if (masukHitungan) {
-                    const nama = lap.nama_sales || 'Tidak Diketahui';
-                    jumlahKunjunganPerSales[nama] = (jumlahKunjunganPerSales[nama] || 0) + 1;
-                }
-            });
-
-            const labels = Object.keys(jumlahKunjunganPerSales);
-            const dataPoin = Object.values(jumlahKunjunganPerSales);
-
-            if (myChart) { myChart.destroy(); }
-            myChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Kunjungan Kios', data: dataPoin, backgroundColor: '#3B82F6', borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
-        }
-
-        function renderPanelKiri() {
-            const panel = document.getElementById('panel-content');
-            let html = '';
-
-            if (menuAktif === 'track' || menuAktif === 'history') {
-                const judulTrack = menuAktif === 'track' ? '📡 Tim di Lapangan (Live)' : '🗺️ Jejak Perjalanan (History)';
-                let jmlAktif = Object.keys(dataSalesTerakhir).length;
-                html += `<div class="content-title">${judulTrack} <span style="background:#3B82F6;color:white;padding:2px 8px;border-radius:10px;font-size:12px;">${jmlAktif} Data</span></div>`;
-                
-                listSemuaSales.forEach(sales => {
-                    const profil = getProfilSales(sales.nama_lengkap);
-                    const wColor = getWarnaSales(sales.nama_lengkap);
-                    const isAktif = dataSalesTerakhir[sales.nama_lengkap] !== undefined;
-                    
-                    if (isAktif) {
-                        const dataAktif = dataSalesTerakhir[sales.nama_lengkap];
-                        html += `
-                        <div class="data-card" onclick="terbangKeLokasi(${dataAktif.latitude}, ${dataAktif.longitude})" style="border-left-color: ${wColor};">
-                            <div class="data-title">
-                                <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
-                                ${profil.nama} 
-                                <span style="font-size:10px; background:${wColor}; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Terdeteksi</span>
-                                <button class="btn-edit-profil" style="margin-left: auto; background:${wColor}; color:white;" onclick="bukaModalProfil('${sales.nama_lengkap}', event)">⚙️ Profil</button>
-                            </div>
-                            <div class="data-subtitle">📍 Klik untuk melihat titik lokasi data</div>
-                        </div>`;
-                    } else {
-                        html += `
-                        <div class="data-card" style="border-left-color: #9CA3AF; opacity: 0.7; cursor: default;">
-                            <div class="data-title">
-                                <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover; filter: grayscale(100%);">
-                                ${profil.nama} 
-                                <span style="font-size:10px; background:#9CA3AF; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Kosong</span>
-                                <button class="btn-edit-profil" style="margin-left: auto;" onclick="bukaModalProfil('${sales.nama_lengkap}', event)">⚙️ Profil</button>
-                            </div>
-                            <div class="data-subtitle">Tidak ada pergerakan di tanggal ini</div>
-                        </div>`;
-                    }
-                });
-            } 
-            else if (menuAktif === 'report') {
-                if (!salesTerpilihUntukLaporan) {
-                    let totalKiosAktual = dataLaporan.length;
-                    html += `<div class="content-title" style="align-items:flex-start;">
-                                <div>📑 Laporan (Tanggal: ${tanggalAktif})</div>
-                                <span style="background:#10B981;color:white;padding:3px 8px;border-radius:10px;font-size:12px;font-weight:900;">${totalKiosAktual} Kios Aktual</span>
-                             </div>`;
-                    
-                    if(listSemuaSales.length === 0) {
-                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada data sales.</div>`;
-                    } else {
-                        listSemuaSales.forEach(sales => {
-                            const salesName = sales.nama_lengkap;
-                            const profil = getProfilSales(salesName);
-                            const wColor = getWarnaSales(salesName);
-                            const jumlahLap = dataLaporan.filter(l => l.nama_sales === salesName).length;
-                            
-                            html += `
-                            <div class="data-card" onclick="pilihSalesLaporan('${salesName}')" style="display:flex; align-items:center; gap:15px; border-left-color: ${wColor};">
-                                <img src="${profil.foto}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid ${wColor};">
-                                <div style="flex: 1;">
-                                    <div style="font-weight:800; font-size:15px; color:#111827;">${profil.nama}</div>
-                                    <div style="font-size:12px; color:#6B7280; font-weight:600; margin-top:2px;">📁 ${jumlahLap} Laporan Kios</div>
-                                </div>
-                                <div style="font-size:18px; color:${wColor};">➡️</div>
-                            </div>`;
-                        });
-                    }
-                } else {
-                    const wColor = getWarnaSales(salesTerpilihUntukLaporan);
-                    const lapSales = dataLaporan.filter(l => l.nama_sales === salesTerpilihUntukLaporan);
-                    
-                    html += `
-                    <div class="content-title" style="margin-bottom: 20px;">
-                        <button onclick="pilihSalesLaporan(null)" style="background:#F3F4F6; border:1px solid #D1D5DB; padding:8px 15px; border-radius:10px; cursor:pointer; font-size:12px; font-weight:800; color:#374151; display:flex; align-items:center; gap:5px; transition:0.2s;">⬅️ KEMBALI</button>
-                        <span style="background:#10B981;color:white;padding:3px 8px;border-radius:10px;font-size:12px;font-weight:900;">${lapSales.length} Kios Aktual</span>
-                    </div>
-                    <div style="font-size:14px; font-weight:900; color:#1F2937; margin-bottom:15px; border-bottom:2px solid ${wColor}; padding-bottom:5px;">
-                        Laporan: ${getProfilSales(salesTerpilihUntukLaporan).nama}
-                    </div>`;
-                    
-                    if (lapSales.length === 0) {
-                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko di tanggal ini.</div>`;
-                    } else {
-                        lapSales.forEach(toko => {
-                            let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
-                            let linkHp = toko.no_hp ? `<a href="tel:${toko.no_hp}" style="color:#3B82F6; text-decoration:none; font-weight:800;">${toko.no_hp}</a>` : '-';
-                            let linkWa = toko.no_hp ? `<a href="https://wa.me/${formatingNoHp(toko.no_hp)}" target="_blank" style="color:#10B981; text-decoration:none; font-weight:800; margin-left:5px;">(WA)</a>` : '';
-
-                            html += `
-                            <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: ${wColor};">
-                                <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
-                                <div style="font-size:11px; color:#6B7280; margin-top:3px;">📞 ${linkHp} ${linkWa}</div>
-                                ${fotoThumbSidebar}
-                                <div class="data-desc">
-                                    <b style="color:${wColor};">Insight:</b> ${toko.insight || '-'}<br>
-                                    <b style="color:${wColor};">Stok pupuk terbanyak:</b> ${toko.stok_pupuk || '-'}<br>
-                                    <b style="color:${wColor};">Order:</b> ${toko.order_barang || '-'}<br>
-                                    <b style="color:${wColor};">Alasan tidak order:</b> ${toko.alasan_tidak_order || '-'}
-                                </div>
-                                <div style="margin-top:12px; display:flex; gap:10px;">
-                                    <button onclick="bukaModalEditLaporan(${toko.id}, event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
-                                    <button onclick="hapusLaporan(${toko.id}, event)" style="flex:1; background:#EF4444; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">🗑️ Hapus</button>
-                                </div>
-                            </div>`;
-                        });
-                    }
-                }
-            }
-            else if (menuAktif === 'stats') {
-                html += `
-                <div class="content-title">📊 Ringkasan Performa Tim</div>
-                <div class="stat-tabs">
-                    <div class="stat-tab ${rentangStatistik === 'harian' ? 'active' : ''}" onclick="ubahRentangStatistik('harian')">Hari Ini</div>
-                    <div class="stat-tab ${rentangStatistik === 'mingguan' ? 'active' : ''}" onclick="ubahRentangStatistik('mingguan')">7 Hari</div>
-                    <div class="stat-tab ${rentangStatistik === 'bulanan' ? 'active' : ''}" onclick="ubahRentangStatistik('bulanan')">30 Hari</div>
-                </div>
-                <div class="chart-container">
-                    <div style="font-size:12px; font-weight:800; color:#6B7280; text-align:center; margin-bottom:10px;">TOTAL KUNJUNGAN PER SALES</div>
-                    <canvas id="grafikPerforma"></canvas>
-                </div>`;
-            }
-            else if (menuAktif === 'sales') {
-                html += `
-                <div class="content-title">
-                    <span>🪪 Manajemen Sales ID</span>
-                    <span style="background:#3B82F6;color:white;padding:3px 10px;border-radius:10px;font-size:12px;">${listSemuaSales.length} Akun</span>
-                </div>
-
-                <div class="sales-form-card">
-                    <div style="font-size:13px; font-weight:800; color:#111827; margin-bottom:6px;">➕ Tambah ID Sales Baru</div>
-                    <label>Nama Lengkap Sales</label>
-                    <input type="text" id="new-sales-nama" placeholder="Contoh: Budi Santoso">
-                    
-                    <label>Sales ID (Username Login HP)</label>
-                    <input type="text" id="new-sales-user" placeholder="Contoh: budi01" oninput="this.value = this.value.toLowerCase().replace(/\\s+/g, '')">
-                    
-                    <label>Password</label>
-                    <input type="text" id="new-sales-pass" placeholder="Masukkan password login">
-                    
-                    <button id="btn-simpan-sales-id" class="btn-tambah-sales" onclick="tambahSalesBaru()">+ Buat Sales ID</button>
-                </div>
-
-                <div class="content-title" style="font-size:14px; margin-bottom:10px;">📋 Daftar Sales ID Terdaftar</div>`;
-
-                if (listSemuaSales.length === 0) {
-                    html += `<div style="text-align:center; color:#6B7280; font-size:13px; padding:20px; background:white; border-radius:15px;">Belum ada Sales ID terdaftar.</div>`;
-                } else {
-                    listSemuaSales.forEach(sales => {
-                        const wColor = getWarnaSales(sales.nama_lengkap);
-                        const profil = getProfilSales(sales.nama_lengkap);
-                        const safeNama = (sales.nama_lengkap || '').replace(/'/g, "\\'");
-                        const safeUser = (sales.username || '').replace(/'/g, "\\'");
-                        const safePass = (sales.password || '').replace(/'/g, "\\'");
-
-                        html += `
-                        <div class="data-card" style="border-left-color: ${wColor}; cursor: default;">
-                            <div class="data-title">
-                                <img src="${profil.foto}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid ${wColor};">
-                                <span>${sales.nama_lengkap}</span>
-                            </div>
-                            <div class="data-desc" style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
-                                <div><b>🆔 Sales ID:</b> <span style="color:#1D4ED8; font-weight:800;">${sales.username || '-'}</span></div>
-                                <div><b>🔑 Password:</b> <span style="color:#111827; font-weight:700;">${sales.password || '-'}</span></div>
-                            </div>
-                            <div style="margin-top: 10px; display: flex; gap: 8px;">
-                                <button onclick="salinAkunSales('${safeNama}', '${safeUser}', '${safePass}', event)" style="flex:1; background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; padding:7px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:800;">📋 Salin Akun</button>
-                                <button onclick="hapusSalesID(${sales.id}, '${safeUser}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:800;">🗑️ Hapus ID</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-            }
-
-            panel.innerHTML = html;
-            if (menuAktif === 'stats') { setTimeout(renderGrafik, 100); }
-        }
-    </script>
-</body>
-</html>
