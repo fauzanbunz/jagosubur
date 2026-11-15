@@ -979,3 +979,272 @@
                 dataSalesTerakhir = {};
                 layerLive.clearLayers();
                 layerHistoryLines.clearLayers();
+            }
+            renderPanelKiri();
+        }
+
+        function renderGrafik() {
+            if (menuAktif !== 'stats') return;
+            const ctx = document.getElementById('grafikPerforma');
+            if (!ctx) return;
+
+            let jumlahKunjunganPerSales = {};
+            const hariIni = new Date();
+            
+            dataLaporanMentah.forEach(lap => {
+                const tglData = lap.created_at || null;
+                const tglLap = tglData ? new Date(tglData) : new Date(); 
+                const bedaWaktu = Math.abs(hariIni - tglLap);
+                const bedaHari = Math.ceil(bedaWaktu / (1000 * 60 * 60 * 24));
+                
+                let masukHitungan = false;
+                if(rentangStatistik === 'harian' && bedaHari <= 1 && tglLap.getDate() === hariIni.getDate()) masukHitungan = true;
+                if(rentangStatistik === 'mingguan' && bedaHari <= 7) masukHitungan = true;
+                if(rentangStatistik === 'bulanan' && bedaHari <= 30) masukHitungan = true;
+
+                if (masukHitungan) {
+                    const nama = lap.nama_sales || 'Tidak Diketahui';
+                    jumlahKunjunganPerSales[nama] = (jumlahKunjunganPerSales[nama] || 0) + 1;
+                }
+            });
+
+            const labels = Object.keys(jumlahKunjunganPerSales);
+            const dataPoin = Object.values(jumlahKunjunganPerSales);
+
+            if (myChart) { myChart.destroy(); }
+            myChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Kunjungan Kios', data: dataPoin, backgroundColor: '#3B82F6', borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        }
+
+        function renderPanelKiri() {
+            const panel = document.getElementById('panel-content');
+            let html = '';
+
+            if (menuAktif === 'track' || menuAktif === 'history') {
+                const judulTrack = menuAktif === 'track' ? '📡 Tim di Lapangan (Live)' : '🗺️ Jejak Perjalanan (History)';
+                let jmlAktif = Object.keys(dataSalesTerakhir).length;
+                html += `<div class="content-title">${judulTrack} <span style="background:#3B82F6;color:white;padding:2px 8px;border-radius:10px;font-size:12px;">${jmlAktif} Data</span></div>`;
+                
+                listSemuaSales.forEach(sales => {
+                    const profil = getProfilSales(sales.nama_lengkap);
+                    const wColor = getWarnaSales(sales.nama_lengkap);
+                    const isAktif = dataSalesTerakhir[sales.nama_lengkap] !== undefined;
+                    
+                    if (isAktif) {
+                        const dataAktif = dataSalesTerakhir[sales.nama_lengkap];
+                        html += `
+                        <div class="data-card" onclick="terbangKeLokasi(${dataAktif.latitude}, ${dataAktif.longitude})" style="border-left-color: ${wColor};">
+                            <div class="data-title">
+                                <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
+                                ${profil.nama} 
+                                <span style="font-size:10px; background:${wColor}; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Terdeteksi</span>
+                                <button class="btn-edit-profil" style="margin-left: auto; background:${wColor}; color:white;" onclick="bukaModalProfil('${sales.nama_lengkap}', event)">⚙️ Profil</button>
+                            </div>
+                            <div class="data-subtitle">📍 Klik untuk melihat titik lokasi data</div>
+                        </div>`;
+                    } else {
+                        html += `
+                        <div class="data-card" style="border-left-color: #9CA3AF; opacity: 0.7; cursor: default;">
+                            <div class="data-title">
+                                <img src="${profil.foto}" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover; filter: grayscale(100%);">
+                                ${profil.nama} 
+                                <span style="font-size:10px; background:#9CA3AF; color:white; padding:2px 6px; border-radius:10px; margin-left:5px;">Kosong</span>
+                                <button class="btn-edit-profil" style="margin-left: auto;" onclick="bukaModalProfil('${sales.nama_lengkap}', event)">⚙️ Profil</button>
+                            </div>
+                            <div class="data-subtitle">Tidak ada pergerakan di tanggal ini</div>
+                        </div>`;
+                    }
+                });
+            } 
+            else if (menuAktif === 'report') {
+                if (!salesTerpilihUntukLaporan) {
+                    let totalKiosAktual = dataLaporan.length;
+                    html += `<div class="content-title" style="align-items:flex-start;">
+                                <div>📑 Laporan (Tanggal: ${tanggalAktif})</div>
+                                <span style="background:#10B981;color:white;padding:3px 8px;border-radius:10px;font-size:12px;font-weight:900;">${totalKiosAktual} Kios Aktual</span>
+                             </div>`;
+                    
+                    if(listSemuaSales.length === 0) {
+                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px;">Belum ada data sales.</div>`;
+                    } else {
+                        listSemuaSales.forEach(sales => {
+                            const salesName = sales.nama_lengkap;
+                            const profil = getProfilSales(salesName);
+                            const wColor = getWarnaSales(salesName);
+                            const jumlahLap = dataLaporan.filter(l => l.nama_sales === salesName).length;
+                            
+                            html += `
+                            <div class="data-card" onclick="pilihSalesLaporan('${salesName}')" style="display:flex; align-items:center; gap:15px; border-left-color: ${wColor};">
+                                <img src="${profil.foto}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid ${wColor};">
+                                <div style="flex: 1;">
+                                    <div style="font-weight:800; font-size:15px; color:#111827;">${profil.nama}</div>
+                                    <div style="font-size:12px; color:#6B7280; font-weight:600; margin-top:2px;">📁 ${jumlahLap} Laporan Kios</div>
+                                </div>
+                                <div style="font-size:18px; color:${wColor};">➡️</div>
+                            </div>`;
+                        });
+                    }
+                } else {
+                    const wColor = getWarnaSales(salesTerpilihUntukLaporan);
+                    const lapSales = dataLaporan.filter(l => l.nama_sales === salesTerpilihUntukLaporan);
+                    
+                    html += `
+                    <div class="content-title" style="margin-bottom: 20px;">
+                        <button onclick="pilihSalesLaporan(null)" style="background:#F3F4F6; border:1px solid #D1D5DB; padding:8px 15px; border-radius:10px; cursor:pointer; font-size:12px; font-weight:800; color:#374151; display:flex; align-items:center; gap:5px; transition:0.2s;">⬅️ KEMBALI</button>
+                        <span style="background:#10B981;color:white;padding:3px 8px;border-radius:10px;font-size:12px;font-weight:900;">${lapSales.length} Kios Aktual</span>
+                    </div>
+                    <div style="font-size:14px; font-weight:900; color:#1F2937; margin-bottom:15px; border-bottom:2px solid ${wColor}; padding-bottom:5px;">
+                        Laporan: ${getProfilSales(salesTerpilihUntukLaporan).nama}
+                    </div>`;
+                    
+                    if (lapSales.length === 0) {
+                        html += `<div style="text-align:center; color:gray; font-size:13px; margin-top:20px; font-style:italic;">Belum ada kunjungan toko di tanggal ini.</div>`;
+                    } else {
+                        lapSales.forEach(toko => {
+                            let fotoThumbSidebar = toko.foto_url ? `<img src="${toko.foto_url}" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-top:10px;">` : '';
+                            let linkHp = toko.no_hp ? `<a href="tel:${toko.no_hp}" style="color:#3B82F6; text-decoration:none; font-weight:800;">${toko.no_hp}</a>` : '-';
+                            let linkWa = toko.no_hp ? `<a href="https://wa.me/${formatingNoHp(toko.no_hp)}" target="_blank" style="color:#10B981; text-decoration:none; font-weight:800; margin-left:5px;">(WA)</a>` : '';
+
+                            html += `
+                            <div class="data-card" onclick="terbangKeLokasi(${toko.latitude_checkin}, ${toko.longitude_checkin})" style="border-left-color: ${wColor};">
+                                <div class="data-title">🏪 ${toko.nama_toko_klien}</div>
+                                <div style="font-size:11px; color:#6B7280; margin-top:3px;">📞 ${linkHp} ${linkWa}</div>
+                                ${fotoThumbSidebar}
+                                <div class="data-desc">
+                                    <b style="color:${wColor};">Insight:</b> ${toko.insight || '-'}<br>
+                                    <b style="color:${wColor};">Stok pupuk terbanyak:</b> ${toko.stok_pupuk || '-'}<br>
+                                    <b style="color:${wColor};">Order:</b> ${toko.order_barang || '-'}<br>
+                                    <b style="color:${wColor};">Alasan tidak order:</b> ${toko.alasan_tidak_order || '-'}
+                                </div>
+                                <div style="margin-top:12px; display:flex; gap:10px;">
+                                    <button onclick="bukaModalEditLaporan(${toko.id}, event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
+                                    <button onclick="hapusLaporan(${toko.id}, event)" style="flex:1; background:#EF4444; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">🗑️ Hapus</button>
+                                </div>
+                            </div>`;
+                        });
+                    }
+                }
+            }
+            else if (menuAktif === 'stats') {
+                html += `
+                <div class="content-title">📊 Ringkasan Performa Tim</div>
+                <div class="stat-tabs">
+                    <div class="stat-tab ${rentangStatistik === 'harian' ? 'active' : ''}" onclick="ubahRentangStatistik('harian')">Hari Ini</div>
+                    <div class="stat-tab ${rentangStatistik === 'mingguan' ? 'active' : ''}" onclick="ubahRentangStatistik('mingguan')">7 Hari</div>
+                    <div class="stat-tab ${rentangStatistik === 'bulanan' ? 'active' : ''}" onclick="ubahRentangStatistik('bulanan')">30 Hari</div>
+                </div>
+                <div class="chart-container">
+                    <div style="font-size:12px; font-weight:800; color:#6B7280; text-align:center; margin-bottom:10px;">TOTAL KUNJUNGAN PER SALES</div>
+                    <canvas id="grafikPerforma"></canvas>
+                </div>`;
+            }
+            else if (menuAktif === 'sales') {
+                html += `
+                <div class="content-title">
+                    <span>🪪 Manajemen Sales ID</span>
+                    <span style="background:#3B82F6;color:white;padding:3px 10px;border-radius:10px;font-size:12px;">${listSemuaSales.length} Akun</span>
+                </div>
+
+                <div class="sales-form-card">
+                    <div style="font-size:13px; font-weight:800; color:#111827; margin-bottom:6px;">➕ Tambah ID Sales Baru</div>
+                    <label>Nama Lengkap Sales</label>
+                    <input type="text" id="new-sales-nama" placeholder="Contoh: Budi Santoso">
+                    
+                    <label>Sales ID (Username Login HP)</label>
+                    <input type="text" id="new-sales-user" placeholder="Contoh: budi01" oninput="this.value = this.value.toLowerCase().replace(/\\s+/g, '')">
+                    
+                    <label>Password</label>
+                    <input type="text" id="new-sales-pass" placeholder="Masukkan password login">
+                    
+                    <button id="btn-simpan-sales-id" class="btn-tambah-sales" onclick="tambahSalesBaru()">+ Buat Sales ID</button>
+                </div>
+
+                <div class="content-title" style="font-size:14px; margin-bottom:10px;">📋 Daftar Sales ID Terdaftar</div>`;
+
+                if (listSemuaSales.length === 0) {
+                    html += `<div style="text-align:center; color:#6B7280; font-size:13px; padding:20px; background:white; border-radius:15px;">Belum ada Sales ID terdaftar.</div>`;
+                } else {
+                    listSemuaSales.forEach(sales => {
+                        const wColor = getWarnaSales(sales.nama_lengkap);
+                        const profil = getProfilSales(sales.nama_lengkap);
+                        const safeNama = (sales.nama_lengkap || '').replace(/'/g, "\\'");
+                        const safeUser = (sales.username || '').replace(/'/g, "\\'");
+                        const safePass = (sales.password || '').replace(/'/g, "\\'");
+
+                        html += `
+                        <div class="data-card" style="border-left-color: ${wColor}; cursor: default;">
+                            <div class="data-title">
+                                <img src="${profil.foto}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid ${wColor};">
+                                <span>${sales.nama_lengkap}</span>
+                            </div>
+                            <div class="data-desc" style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+                                <div><b>🆔 Sales ID:</b> <span style="color:#1D4ED8; font-weight:800;">${sales.username || '-'}</span></div>
+                                <div><b>🔑 Password:</b> <span style="color:#111827; font-weight:700;">${sales.password || '-'}</span></div>
+                            </div>
+                            <div style="margin-top: 10px; display: flex; gap: 6px;">
+                                <button onclick="salinAkunSales('${safeNama}', '${safeUser}', '${safePass}', event)" style="flex:1; background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">📋 Salin</button>
+                                <button onclick="bukaModalEditAkun(${sales.id}, '${safeNama}', '${safeUser}', '${safePass}', 'sales', event)" style="flex:1; background:#FEF3C7; color:#D97706; border:1px solid #FDE68A; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">✏️ Edit</button>
+                                <button onclick="hapusSalesID(${sales.id}, '${safeUser}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">🗑️ Hapus</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+            }
+            else if (menuAktif === 'admin') {
+                html += `
+                <div class="content-title">
+                    <span>🛡️ Manajemen Admin ID</span>
+                    <span style="background:#8B5CF6;color:white;padding:3px 10px;border-radius:10px;font-size:12px;">${listSemuaAdmin.length} Akun</span>
+                </div>
+
+                <div class="sales-form-card" style="border-left-color: #8B5CF6;">
+                    <div style="font-size:13px; font-weight:800; color:#111827; margin-bottom:6px;">➕ Tambah ID Admin Baru</div>
+                    <label>Nama Lengkap Admin</label>
+                    <input type="text" id="new-admin-nama" placeholder="Contoh: Ganang Admin">
+                    
+                    <label>Admin ID (Username Login Web & APK Admin)</label>
+                    <input type="text" id="new-admin-user" placeholder="Contoh: admin_ganang" oninput="this.value = this.value.toLowerCase().replace(/\\s+/g, '')">
+                    
+                    <label>Password</label>
+                    <input type="text" id="new-admin-pass" placeholder="Masukkan password admin">
+                    
+                    <button id="btn-simpan-admin-id" class="btn-tambah-admin" onclick="tambahAdminBaru()">+ Buat Admin ID</button>
+                </div>
+
+                <div class="content-title" style="font-size:14px; margin-bottom:10px;">📋 Daftar Admin ID Terdaftar</div>`;
+
+                if (listSemuaAdmin.length === 0) {
+                    html += `<div style="text-align:center; color:#6B7280; font-size:13px; padding:20px; background:white; border-radius:15px;">Belum ada Admin ID terdaftar.</div>`;
+                } else {
+                    listSemuaAdmin.forEach(admin => {
+                        const avatarAdmin = `https://ui-avatars.com/api/?name=${encodeURIComponent(admin.nama_lengkap)}&background=8B5CF6&color=fff&size=75&bold=true`;
+                        const safeNama = (admin.nama_lengkap || '').replace(/'/g, "\\'");
+                        const safeUser = (admin.username || '').replace(/'/g, "\\'");
+                        const safePass = (admin.password || '').replace(/'/g, "\\'");
+
+                        html += `
+                        <div class="data-card" style="border-left-color: #8B5CF6; cursor: default;">
+                            <div class="data-title">
+                                <img src="${avatarAdmin}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #8B5CF6;">
+                                <span>${admin.nama_lengkap}</span>
+                                <span style="margin-left:auto; font-size:10px; background:#EDE9FE; color:#6D28D9; padding:2px 8px; border-radius:10px; font-weight:800;">ADMIN</span>
+                            </div>
+                            <div class="data-desc" style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+                                <div><b>🛡️ Admin ID:</b> <span style="color:#6D28D9; font-weight:800;">${admin.username || '-'}</span></div>
+                                <div><b>🔑 Password:</b> <span style="color:#111827; font-weight:700;">${admin.password || '-'}</span></div>
+                            </div>
+                            <div style="margin-top: 10px; display: flex; gap: 6px;">
+                                <button onclick="salinAkunAdmin('${safeNama}', '${safeUser}', '${safePass}', event)" style="flex:1; background:#F5F3FF; color:#6D28D9; border:1px solid #DDD6FE; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">📋 Salin</button>
+                                <button onclick="bukaModalEditAkun(${admin.id}, '${safeNama}', '${safeUser}', '${safePass}', 'admin', event)" style="flex:1; background:#FEF3C7; color:#D97706; border:1px solid #FDE68A; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">✏️ Edit</button>
+                                <button onclick="hapusAdminID(${admin.id}, '${safeUser}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">🗑️ Hapus</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+            }
+
+            panel.innerHTML = html;
+            if (menuAktif === 'stats') { setTimeout(renderGrafik, 100); }
+        }
+    </script>
+</body>
+</html>
