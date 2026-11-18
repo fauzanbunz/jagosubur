@@ -269,7 +269,6 @@
             return warnaAssigned[nama];
         }
 
-        // Format tanggal selalu berdasarkan WIB (GMT+7 / Asia/Jakarta)
         function formatTanggal(dateStr) {
             const d = dateStr ? new Date(dateStr) : new Date();
             if (isNaN(d.getTime())) return '';
@@ -317,9 +316,9 @@
         // FUNGSI MODAL EDIT & HAPUS LAPORAN
         function bukaModalEditLaporan(id, event) {
             event.stopPropagation(); 
-            const lap = dataLaporan.find(l => l.id === id);
+            const lap = dataLaporan.find(l => String(l.id) === String(id));
             if(!lap) return;
-            document.getElementById('edit-lap-id').value = id;
+            document.getElementById('edit-lap-id').value = lap.id;
             document.getElementById('edit-lap-insight').value = lap.insight || '';
             document.getElementById('edit-lap-stok').value = lap.stok_pupuk || '';
             document.getElementById('edit-lap-order').value = lap.order_barang || '';
@@ -331,21 +330,23 @@
             const btn = document.getElementById('btn-simpan-lap');
             const id = document.getElementById('edit-lap-id').value;
             btn.innerText = "Menyimpan...";
-            const { error } = await db.from('laporan_kunjungan').update({
+            const { data, error } = await db.from('laporan_kunjungan').update({
                 insight: document.getElementById('edit-lap-insight').value, 
                 stok_pupuk: document.getElementById('edit-lap-stok').value, 
                 order_barang: document.getElementById('edit-lap-order').value, 
                 alasan_tidak_order: document.getElementById('edit-lap-alasan').value
-            }).eq('id', id);
+            }).eq('id', id).select();
             btn.innerText = "Simpan";
             if(error) alert("Gagal merubah data: " + error.message);
+            else if(!data || data.length === 0) alert("Data tidak berubah. Periksa izin UPDATE (RLS) di Supabase.");
             else { tutupModalEditLaporan(); tarikDataSupabase(); }
         }
         async function hapusLaporan(id, event) {
             event.stopPropagation();
             if(confirm("APAKAH BOS YAKIN?\nLaporan ini akan dihapus permanen.")) {
-                const { error } = await db.from('laporan_kunjungan').delete().eq('id', id);
+                const { data, error } = await db.from('laporan_kunjungan').delete().eq('id', id).select();
                 if(error) alert("Gagal menghapus data: " + error.message);
+                else if(!data || data.length === 0) alert("Data gagal terhapus. Periksa izin DELETE (RLS) di Supabase.");
                 else {
                     if (map) map.closePopup();
                     tarikDataSupabase();
@@ -354,13 +355,20 @@
         }
 
         // FUNGSI MODAL EDIT AKUN (UNTUK ADMIN ID & SALES ID)
-        function bukaModalEditAkun(id, nama, username, password, role, event) {
+        function bukaModalEditAkun(id, role, event) {
             event.stopPropagation();
-            document.getElementById('edit-akun-id').value = id;
+            const sumberList = role === 'admin' ? listSemuaAdmin : listSemuaSales;
+            const akun = sumberList.find(item => String(item.id) === String(id));
+            if (!akun) {
+                alert("Data akun tidak ditemukan!");
+                return;
+            }
+
+            document.getElementById('edit-akun-id').value = akun.id;
             document.getElementById('edit-akun-role').value = role;
-            document.getElementById('edit-akun-nama').value = nama;
-            document.getElementById('edit-akun-user').value = username;
-            document.getElementById('edit-akun-pass').value = password;
+            document.getElementById('edit-akun-nama').value = akun.nama_lengkap || '';
+            document.getElementById('edit-akun-user').value = akun.username || '';
+            document.getElementById('edit-akun-pass').value = akun.password || '';
 
             if (role === 'admin') {
                 document.getElementById('modal-akun-title').innerText = 'Edit Admin ID';
@@ -378,7 +386,6 @@
 
         async function simpanEditAkun() {
             const id = document.getElementById('edit-akun-id').value;
-            const role = document.getElementById('edit-akun-role').value;
             const nama_lengkap = document.getElementById('edit-akun-nama').value.trim();
             const username = document.getElementById('edit-akun-user').value.trim().toLowerCase().replace(/\s+/g, '');
             const password = document.getElementById('edit-akun-pass').value.trim();
@@ -393,7 +400,6 @@
             btn.innerText = "Menyimpan...";
 
             try {
-                // Pastikan username baru tidak dipakai akun lain
                 const { data: existing } = await db
                     .from('sales_team')
                     .select('id')
@@ -408,14 +414,20 @@
                     return;
                 }
 
-                const { error } = await db.from('sales_team').update({
-                    nama_lengkap: nama_lengkap,
-                    username: username,
-                    password: password
-                }).eq('id', id);
+                const { data, error } = await db
+                    .from('sales_team')
+                    .update({
+                        nama_lengkap: nama_lengkap,
+                        username: username,
+                        password: password
+                    })
+                    .eq('id', id)
+                    .select();
 
                 if (error) {
                     alert("Gagal mengubah akun: " + error.message);
+                } else if (!data || data.length === 0) {
+                    alert("Perubahan ditolak database! Pastikan Policy UPDATE pada tabel sales_team di Supabase sudah diaktifkan.");
                 } else {
                     tutupModalEditAkun();
                     await tarikDataSupabase();
@@ -489,20 +501,30 @@
             }
         }
 
-        function salinAkunSales(nama, username, password, event) {
+        function salinAkunById(id, role, event) {
             event.stopPropagation();
-            const teks = `Akun JS-App Sales\nNama: ${nama}\nSales ID: ${username}\nPassword: ${password}`;
+            const sumberList = role === 'admin' ? listSemuaAdmin : listSemuaSales;
+            const akun = sumberList.find(item => String(item.id) === String(id));
+            if (!akun) return;
+
+            const labelRole = role === 'admin' ? 'Admin' : 'Sales';
+            const teks = `Akun JS-App ${labelRole}\nNama: ${akun.nama_lengkap}\n${labelRole} ID: ${akun.username}\nPassword: ${akun.password}`;
             navigator.clipboard.writeText(teks).then(() => {
-                alert(`Info login "${nama}" berhasil disalin ke clipboard!`);
+                alert(`Info login "${akun.nama_lengkap}" berhasil disalin ke clipboard!`);
             });
         }
 
-        async function hapusSalesID(id, username, event) {
+        async function hapusSalesID(id, event) {
             event.stopPropagation();
-            if (confirm(`Yakin ingin menghapus akun Sales ID "${username}" secara permanen?`)) {
-                const { error } = await db.from('sales_team').delete().eq('id', id);
+            const sales = listSemuaSales.find(s => String(s.id) === String(id));
+            const label = sales ? `${sales.nama_lengkap} (${sales.username})` : id;
+
+            if (confirm(`Yakin ingin menghapus akun Sales ID "${label}" secara permanen?`)) {
+                const { data, error } = await db.from('sales_team').delete().eq('id', id).select();
                 if (error) {
                     alert("Gagal menghapus Sales ID: " + error.message);
+                } else if (!data || data.length === 0) {
+                    alert("Data gagal dihapus oleh database! Pastikan Policy DELETE pada tabel sales_team di Supabase sudah diaktifkan.");
                 } else {
                     await tarikDataSupabase();
                 }
@@ -570,24 +592,21 @@
             }
         }
 
-        function salinAkunAdmin(nama, username, password, event) {
-            event.stopPropagation();
-            const teks = `Akun JS-App Admin\nNama: ${nama}\nAdmin ID: ${username}\nPassword: ${password}`;
-            navigator.clipboard.writeText(teks).then(() => {
-                alert(`Info login Admin "${nama}" berhasil disalin ke clipboard!`);
-            });
-        }
-
-        async function hapusAdminID(id, username, event) {
+        async function hapusAdminID(id, event) {
             event.stopPropagation();
             if (listSemuaAdmin.length <= 1) {
                 alert("Tidak dapat menghapus akun Admin terakhir agar akses sistem tetap terjaga!");
                 return;
             }
-            if (confirm(`Yakin ingin menghapus akun Admin ID "${username}" secara permanen?`)) {
-                const { error } = await db.from('sales_team').delete().eq('id', id);
+            const admin = listSemuaAdmin.find(a => String(a.id) === String(id));
+            const label = admin ? `${admin.nama_lengkap} (${admin.username})` : id;
+
+            if (confirm(`Yakin ingin menghapus akun Admin ID "${label}" secara permanen?`)) {
+                const { data, error } = await db.from('sales_team').delete().eq('id', id).select();
                 if (error) {
                     alert("Gagal menghapus Admin ID: " + error.message);
+                } else if (!data || data.length === 0) {
+                    alert("Data gagal dihapus oleh database! Pastikan Policy DELETE pada tabel sales_team di Supabase sudah diaktifkan.");
                 } else {
                     await tarikDataSupabase();
                 }
@@ -1116,8 +1135,8 @@
                                     <b style="color:${wColor};">Alasan tidak order:</b> ${toko.alasan_tidak_order || '-'}
                                 </div>
                                 <div style="margin-top:12px; display:flex; gap:10px;">
-                                    <button onclick="bukaModalEditLaporan(${toko.id}, event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
-                                    <button onclick="hapusLaporan(${toko.id}, event)" style="flex:1; background:#EF4444; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">🗑️ Hapus</button>
+                                    <button onclick="bukaModalEditLaporan('${toko.id}', event)" style="flex:1; background:#F59E0B; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">✏️ Edit Data</button>
+                                    <button onclick="hapusLaporan('${toko.id}', event)" style="flex:1; background:#EF4444; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; transition:0.2s;">🗑️ Hapus</button>
                                 </div>
                             </div>`;
                         });
@@ -1166,9 +1185,6 @@
                     listSemuaSales.forEach(sales => {
                         const wColor = getWarnaSales(sales.nama_lengkap);
                         const profil = getProfilSales(sales.nama_lengkap);
-                        const safeNama = (sales.nama_lengkap || '').replace(/'/g, "\\'");
-                        const safeUser = (sales.username || '').replace(/'/g, "\\'");
-                        const safePass = (sales.password || '').replace(/'/g, "\\'");
 
                         html += `
                         <div class="data-card" style="border-left-color: ${wColor}; cursor: default;">
@@ -1181,9 +1197,9 @@
                                 <div><b>🔑 Password:</b> <span style="color:#111827; font-weight:700;">${sales.password || '-'}</span></div>
                             </div>
                             <div style="margin-top: 10px; display: flex; gap: 6px;">
-                                <button onclick="salinAkunSales('${safeNama}', '${safeUser}', '${safePass}', event)" style="flex:1; background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">📋 Salin</button>
-                                <button onclick="bukaModalEditAkun(${sales.id}, '${safeNama}', '${safeUser}', '${safePass}', 'sales', event)" style="flex:1; background:#FEF3C7; color:#D97706; border:1px solid #FDE68A; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">✏️ Edit</button>
-                                <button onclick="hapusSalesID(${sales.id}, '${safeUser}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">🗑️ Hapus</button>
+                                <button type="button" onclick="salinAkunById('${sales.id}', 'sales', event)" style="flex:1; background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">📋 Salin</button>
+                                <button type="button" onclick="bukaModalEditAkun('${sales.id}', 'sales', event)" style="flex:1; background:#FEF3C7; color:#D97706; border:1px solid #FDE68A; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">✏️ Edit</button>
+                                <button type="button" onclick="hapusSalesID('${sales.id}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">🗑️ Hapus</button>
                             </div>
                         </div>`;
                     });
@@ -1217,9 +1233,6 @@
                 } else {
                     listSemuaAdmin.forEach(admin => {
                         const avatarAdmin = `https://ui-avatars.com/api/?name=${encodeURIComponent(admin.nama_lengkap)}&background=8B5CF6&color=fff&size=75&bold=true`;
-                        const safeNama = (admin.nama_lengkap || '').replace(/'/g, "\\'");
-                        const safeUser = (admin.username || '').replace(/'/g, "\\'");
-                        const safePass = (admin.password || '').replace(/'/g, "\\'");
 
                         html += `
                         <div class="data-card" style="border-left-color: #8B5CF6; cursor: default;">
@@ -1233,9 +1246,9 @@
                                 <div><b>🔑 Password:</b> <span style="color:#111827; font-weight:700;">${admin.password || '-'}</span></div>
                             </div>
                             <div style="margin-top: 10px; display: flex; gap: 6px;">
-                                <button onclick="salinAkunAdmin('${safeNama}', '${safeUser}', '${safePass}', event)" style="flex:1; background:#F5F3FF; color:#6D28D9; border:1px solid #DDD6FE; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">📋 Salin</button>
-                                <button onclick="bukaModalEditAkun(${admin.id}, '${safeNama}', '${safeUser}', '${safePass}', 'admin', event)" style="flex:1; background:#FEF3C7; color:#D97706; border:1px solid #FDE68A; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">✏️ Edit</button>
-                                <button onclick="hapusAdminID(${admin.id}, '${safeUser}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">🗑️ Hapus</button>
+                                <button type="button" onclick="salinAkunById('${admin.id}', 'admin', event)" style="flex:1; background:#F5F3FF; color:#6D28D9; border:1px solid #DDD6FE; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">📋 Salin</button>
+                                <button type="button" onclick="bukaModalEditAkun('${admin.id}', 'admin', event)" style="flex:1; background:#FEF3C7; color:#D97706; border:1px solid #FDE68A; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">✏️ Edit</button>
+                                <button type="button" onclick="hapusAdminID('${admin.id}', event)" style="flex:1; background:#FEE2E2; color:#DC2626; border:none; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:800;">🗑️ Hapus</button>
                             </div>
                         </div>`;
                     });
